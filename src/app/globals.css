@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #0b0e14;
+  color: #e6e9ef;
+}
+
+* {
+  border-color: #1e2530;
+}
+
+/* ── Pulse logo: heart-rhythm animation ───────────────────── */
+/* "lub-dub" double-thump then rest, like a real heartbeat */
+@keyframes pulse-beat {
+  0% { transform: scale(1); }
+  8% { transform: scale(1.1); }
+  16% { transform: scale(1); }
+  26% { transform: scale(1.14); }
+  40% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+@keyframes pulse-glow {
+  0% { opacity: 0.25; transform: scale(0.9); }
+  26% { opacity: 0.65; transform: scale(1.35); }
+  60% { opacity: 0.25; transform: scale(0.9); }
+  100% { opacity: 0.25; transform: scale(0.9); }
+}
+/* bright blip travels along the ECG trace */
+@keyframes ecg-trace {
+  to { stroke-dashoffset: -116; }
+}
+
+.pulse-beat {
+  animation: pulse-beat 1.5s ease-in-out infinite;
+  transform-origin: center;
+}
+.pulse-glow {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+  transform-origin: center;
+}
+.ecg-trace {
+  stroke-dasharray: 16 100;
+  stroke-dashoffset: 0;
+  animation: ecg-trace 1.5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-beat,
+  .pulse-glow,
+  .ecg-trace {
+    animation: none;
+  }
+}
