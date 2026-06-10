@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 import { useDeleteMonitor, useMonitorAction } from "@/lib/mutations";
+import { useMe, can, PERM } from "@/lib/permissions";
 import type { Monitor, Paginated } from "@/lib/types";
 import { Button, Card, StatusBadge } from "@/components/ui";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
@@ -14,6 +15,7 @@ export default function MonitorsPage() {
   const [editing, setEditing] = useState<Monitor | null>(null);
   const action = useMonitorAction();
   const del = useDeleteMonitor();
+  const { data: me } = useMe();
   const { data, isLoading } = useQuery({
     queryKey: ["monitors"],
     queryFn: () => apiFetch<Paginated<Monitor>>("/monitors?limit=100"),
@@ -24,14 +26,16 @@ export default function MonitorsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Monitors</h1>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setOpen(true);
-          }}
-        >
-          + New Monitor
-        </Button>
+        {can(me, PERM.MONITOR_CREATE) && (
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+          >
+            + New Monitor
+          </Button>
+        )}
       </div>
 
       <Card>

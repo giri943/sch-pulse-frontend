@@ -2,8 +2,17 @@
 
 import { useState } from "react";
 import { useCreateMonitor, useUpdateMonitor, type MonitorBody } from "@/lib/mutations";
-import type { Monitor } from "@/lib/types";
+import type { Monitor, UserLite } from "@/lib/types";
 import { Button, Field, Input, Modal, Select } from "@/components/ui";
+import { UserPicker } from "@/components/UserPicker";
+
+/** Normalize a monitor's members (ids or populated objects) to UserLite[]. */
+function toUserLites(members: Monitor["members"]): UserLite[] {
+  if (!members) return [];
+  return members
+    .filter((m): m is UserLite => typeof m === "object" && m !== null)
+    .map((m) => ({ id: m.id, name: m.name, email: m.email, avatarUrl: m.avatarUrl }));
+}
 
 /** Create/edit a monitor. `monitor=null` → create. Pass a fresh `key` to reset state. */
 export function MonitorFormModal({
@@ -24,7 +33,8 @@ export function MonitorFormModal({
   const [method, setMethod] = useState(monitor?.method ?? "GET");
   const [intervalSec, setIntervalSec] = useState(monitor?.intervalSec ?? 60);
   const [expectedStatusCode, setExpectedStatusCode] = useState(monitor?.expectedStatusCode ?? 200);
-  const [recipients, setRecipients] = useState((monitor?.alertRecipients ?? []).join(", "));
+  const [members, setMembers] = useState<UserLite[]>(toUserLites(monitor?.members));
+  const [extraEmails, setExtraEmails] = useState((monitor?.extraAlertEmails ?? []).join(", "));
   const [error, setError] = useState<string | null>(null);
   const pending = create.isPending || update.isPending;
 
@@ -38,7 +48,8 @@ export function MonitorFormModal({
       method,
       intervalSec,
       expectedStatusCode,
-      alertRecipients: recipients.split(",").map((s) => s.trim()).filter(Boolean),
+      members: members.map((m) => m.id),
+      extraAlertEmails: extraEmails.split(",").map((s) => s.trim()).filter(Boolean),
     };
     try {
       if (monitor) await update.mutateAsync({ id: monitor._id, body });
@@ -93,8 +104,11 @@ export function MonitorFormModal({
             />
           </Field>
         </div>
-        <Field label="Alert recipients (comma-separated emails)">
-          <Input value={recipients} onChange={(e) => setRecipients(e.target.value)} placeholder="ops@schbang.com" />
+        <Field label="Tag users (visibility + alerts)">
+          <UserPicker value={members} onChange={setMembers} />
+        </Field>
+        <Field label="Extra alert emails (non-users, comma-separated)">
+          <Input value={extraEmails} onChange={(e) => setExtraEmails(e.target.value)} placeholder="client@brand.com" />
         </Field>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>

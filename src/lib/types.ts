@@ -50,6 +50,22 @@ export interface IncidentRow {
   monitorId?: { name?: string; url?: string };
 }
 
+export interface UserLite {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+}
+
+export interface Me {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  role: { id: string; name: string };
+  permissions: string[];
+}
+
 export interface Monitor {
   _id: string;
   name: string;
@@ -58,7 +74,8 @@ export interface Monitor {
   method?: string;
   intervalSec?: number;
   expectedStatusCode?: number;
-  alertRecipients?: string[];
+  members?: (string | UserLite)[];
+  extraAlertEmails?: string[];
   enabled: boolean;
   status: MonitorStatus;
   lastResponseTimeMs?: number;

@@ -5,21 +5,26 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { apiFetch, getAccessToken, setAccessToken } from "@/lib/api-client";
 import { SchbangLogo } from "@/components/SchbangLogo";
+import { useMe, can, PERM } from "@/lib/permissions";
 
-const NAV = [
+const NAV: { href: string; label: string; icon: string; perm?: string }[] = [
   { href: "/", label: "Overview", icon: "📊" },
   { href: "/monitors", label: "Monitors", icon: "📡" },
   { href: "/incidents", label: "Incidents", icon: "⚠️" },
+  { href: "/users", label: "Users", icon: "👥", perm: PERM.USER_READ },
   { href: "/settings", label: "Settings", icon: "⚙️" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { data: me } = useMe();
 
   useEffect(() => {
     if (!getAccessToken()) router.replace("/login");
   }, [router]);
+
+  const navItems = NAV.filter((item) => !item.perm || can(me, item.perm));
 
   async function logout() {
     await apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
@@ -34,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SchbangLogo fontSize={20} />
         </div>
         <nav className="mt-4 flex-1 space-y-1">
-          {NAV.map((item) => {
+          {navItems.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (
               <Link

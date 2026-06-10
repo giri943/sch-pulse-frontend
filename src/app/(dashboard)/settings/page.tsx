@@ -1,18 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api-client";
+import { useMe } from "@/lib/permissions";
 import { Card, CardTitle } from "@/components/ui";
 
-interface Me {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
 export default function SettingsPage() {
-  const { data } = useQuery({ queryKey: ["me"], queryFn: () => apiFetch<Me>("/auth/me") });
+  const { data } = useMe();
 
   return (
     <div className="space-y-6">
@@ -28,7 +20,7 @@ export default function SettingsPage() {
               <span className="text-muted">Email:</span> {data.email}
             </div>
             <div>
-              <span className="text-muted">Role:</span> {data.role}
+              <span className="text-muted">Role:</span> {data.role.name}
             </div>
           </div>
         ) : (
@@ -36,10 +28,11 @@ export default function SettingsPage() {
         )}
       </Card>
       <Card>
-        <CardTitle>Admin</CardTitle>
+        <CardTitle>Access</CardTitle>
         <p className="text-muted text-sm">
-          User management and recommendation rules are admin-only (API: <code>/users</code>,{" "}
-          <code>/recommendation-rules</code>). Dedicated screens are on the roadmap.
+          Your role grants {data?.permissions.length ?? 0} permission(s). Role management
+          (custom roles &amp; permissions) is on the roadmap (Phase 2). Super admins manage
+          users from the <b>Users</b> section.
         </p>
       </Card>
     </div>

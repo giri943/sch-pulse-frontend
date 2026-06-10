@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, setAccessToken } from "@/lib/api-client";
 import { SchbangLogo } from "@/components/SchbangLogo";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,6 +28,20 @@ export default function LoginPage() {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function onGoogle(idToken: string) {
+    setError(null);
+    try {
+      const res = await apiFetch<{ accessToken: string }>("/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ idToken }),
+      });
+      setAccessToken(res.accessToken);
+      router.replace("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google sign-in failed");
     }
   }
 
@@ -68,6 +83,13 @@ export default function LoginPage() {
         <a href="/forgot-password" className="block text-center text-xs text-muted hover:text-fg">
           Forgot password?
         </a>
+
+        <div className="flex items-center gap-3 py-1">
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted">or</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+        <GoogleSignInButton onToken={onGoogle} onError={setError} />
       </form>
     </div>
   );

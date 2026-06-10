@@ -11,7 +11,8 @@ export interface MonitorBody {
   intervalSec?: number;
   expectedStatusCode?: number;
   timeoutMs?: number;
-  alertRecipients?: string[];
+  members?: string[];
+  extraAlertEmails?: string[];
 }
 
 function useInvalidate(keys: string[][]) {
@@ -46,6 +47,24 @@ export function useMonitorAction() {
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: "run" | "pause" | "resume" }) =>
       apiFetch(`/monitors/${id}/${action}`, { method: "POST" }),
+    onSuccess: invalidate,
+  });
+}
+
+/* ── Users (admin) ── */
+export function useCreateUser() {
+  const invalidate = useInvalidate([["users"]]);
+  return useMutation({
+    mutationFn: (body: { name: string; email: string; password: string; roleId: string }) =>
+      apiFetch("/users", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+export function useUpdateUser() {
+  const invalidate = useInvalidate([["users"]]);
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: { roleId?: string; status?: "active" | "disabled" } }) =>
+      apiFetch(`/users/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     onSuccess: invalidate,
   });
 }

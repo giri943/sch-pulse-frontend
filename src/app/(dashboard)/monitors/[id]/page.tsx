@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { apiFetch } from "@/lib/api-client";
 import { useMonitorAction, useDeleteMonitor, useTestNotification } from "@/lib/mutations";
-import type { Monitor, Paginated, IncidentRow } from "@/lib/types";
+import type { Monitor, Paginated, IncidentRow, UserLite } from "@/lib/types";
 import { Button, Card, CardTitle } from "@/components/ui";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
 
@@ -108,7 +108,8 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
     queryFn: () => apiFetch<Paginated<IncidentRow>>(`/incidents?monitorId=${id}&limit=20`),
   });
 
-  const recipients = monitor?.alertRecipients ?? [];
+  const memberUsers = ((monitor?.members ?? []).filter((m) => typeof m === "object") as UserLite[]);
+  const recipients = [...memberUsers.map((u) => u.email), ...(monitor?.extraAlertEmails ?? [])];
   const chart =
     uptime?.series.map((p) => ({
       t: new Date(p.t).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit" }),
