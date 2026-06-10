@@ -1,112 +1,122 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
-import { useDeleteMonitor, useMonitorAction } from "@/lib/mutations";
 import { useMe, can, PERM } from "@/lib/permissions";
 import type { Monitor, Paginated } from "@/lib/types";
-import { Button, Card, StatusBadge } from "@/components/ui";
+import { Button, PageHeader, Input, Select, Skeleton, EmptyState } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { MonitorCard } from "@/components/MonitorCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
 
-export default function MonitorsPage() {
+function MonitorsInner() {
+  const params = useSearchParams();
+  const { data: me } = useMe();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Monitor | null>(null);
-  const action = useMonitorAction();
-  const del = useDeleteMonitor();
-  const { data: me } = useMe();
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState("name");
+
+  const typeFilter = params.get("type"); // website | api | ssl | null (from sidebar)
+
   const { data, isLoading } = useQuery({
     queryKey: ["monitors"],
     queryFn: () => apiFetch<Paginated<Monitor>>("/monitors?limit=100"),
     refetchInterval: 15_000,
   });
 
+  const canCreate = can(me, PERM.MONITOR_CREATE);
+  const canManage = !!me?.permissions.some(
+    (p) => p.startsWith("monitor:update") || p.startsWith("monitor:run") || p.startsWith("monitor:delete"),
+  );
+
+  const monitors = useMemo(() => {
+    let list = data?.data ?? [];
+    if (typeFilter) list = list.filter((m) => m.type === typeFilter);
+    if (status !== "all") list = list.filter((m) => (status === "paused" ? !m.enabled : m.status === status));
+    if (q.trim()) {
+      const needle = q.toLowerCase();
+      list = list.filter((m) => m.name.toLowerCase().includes(needle) || m.url.toLowerCase().includes(needle));
+    }
+    const sorted = [...list];
+    if (sort === "name") sorted.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === "latency") sorted.sort((a, b) => (b.lastResponseTimeMs ?? 0) - (a.lastResponseTimeMs ?? 0));
+    if (sort === "status") sorted.sort((a, b) => a.status.localeCompare(b.status));
+    return sorted;
+  }, [data, typeFilter, status, q, sort]);
+
+  const title = typeFilter ? `${typeFilter.toUpperCase()} monitors` : "Monitors";
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Monitors</h1>
-        {can(me, PERM.MONITOR_CREATE) && (
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            + New Monitor
-          </Button>
-        )}
+    <div className="space-y-6 max-w-[1400px]">
+      <PageHeader
+        title={title}
+        subtitle="Search, filter and manage everything you're watching."
+        actions={
+          canCreate && (
+            <Button onClick={() => { setEditing(null); setOpen(true); }}>
+              <Icon name="plus" width={15} height={15} /> New Monitor
+            </Button>
+          )
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+            <Icon name="search" width={15} height={15} />
+          </span>
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or URL…" className="pl-9" />
+        </div>
+        <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-auto">
+          <option value="all">All statuses</option>
+          <option value="operational">Operational</option>
+          <option value="degraded">Degraded</option>
+          <option value="down">Down</option>
+          <option value="paused">Paused</option>
+        </Select>
+        <Select value={sort} onChange={(e) => setSort(e.target.value)} className="w-auto">
+          <option value="name">Sort: Name</option>
+          <option value="latency">Sort: Latency</option>
+          <option value="status">Sort: Status</option>
+        </Select>
       </div>
 
-      <Card>
-        {isLoading ? (
-          <p className="text-muted text-sm">Loading…</p>
-        ) : !data?.data.length ? (
-          <p className="text-muted text-sm">No monitors yet. Add one to start monitoring.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="text-muted text-left">
-              <tr>
-                <th className="py-2">Name</th>
-                <th>Type</th>
-                <th>URL</th>
-                <th>Latency</th>
-                <th>Status</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.data.map((m) => (
-                <tr key={m._id} className="border-t border-border">
-                  <td className="py-2.5">
-                    <Link href={`/monitors/${m._id}`} className="hover:text-brand">
-                      {m.name}
-                    </Link>
-                  </td>
-                  <td className="text-muted">{m.type}</td>
-                  <td className="text-muted truncate max-w-[200px]">{m.url}</td>
-                  <td className="text-muted">{m.lastResponseTimeMs != null ? `${m.lastResponseTimeMs}ms` : "—"}</td>
-                  <td>
-                    <StatusBadge status={m.status} />
-                  </td>
-                  <td>
-                    <div className="flex justify-end gap-1.5">
-                      <Button variant="ghost" onClick={() => action.mutate({ id: m._id, action: "run" })}>
-                        Run
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => action.mutate({ id: m._id, action: m.enabled ? "pause" : "resume" })}
-                      >
-                        {m.enabled ? "Pause" : "Resume"}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setEditing(m);
-                          setOpen(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        onClick={() => {
-                          if (confirm(`Delete monitor "${m.name}"?`)) del.mutate(m._id);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-40" />
+          ))}
+        </div>
+      ) : !monitors.length ? (
+        <div className="bg-surface border border-border rounded-xl">
+          <EmptyState
+            icon="📡"
+            title={data?.data.length ? "No monitors match your filters" : "No monitors yet"}
+            description={data?.data.length ? "Try clearing the search or filters." : "Create your first monitor to start tracking uptime, response time and SSL."}
+            action={canCreate && !data?.data.length ? <Button onClick={() => { setEditing(null); setOpen(true); }}>+ New Monitor</Button> : undefined}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {monitors.map((m) => (
+            <MonitorCard key={m._id} monitor={m} canManage={canManage} onEdit={(mm) => { setEditing(mm); setOpen(true); }} />
+          ))}
+        </div>
+      )}
 
       <MonitorFormModal key={editing?._id ?? "new"} open={open} onClose={() => setOpen(false)} monitor={editing} />
     </div>
+  );
+}
+
+export default function MonitorsPage() {
+  return (
+    <Suspense fallback={<div className="text-muted text-sm">Loading…</div>}>
+      <MonitorsInner />
+    </Suspense>
   );
 }

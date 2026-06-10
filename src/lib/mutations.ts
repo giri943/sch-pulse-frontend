@@ -69,6 +69,35 @@ export function useUpdateUser() {
   });
 }
 
+/* ── Roles (super admin) ── */
+export interface RoleBody {
+  name: string;
+  description?: string;
+  permissions: string[];
+}
+export function useCreateRole() {
+  const invalidate = useInvalidate([["roles"]]);
+  return useMutation({
+    mutationFn: (body: RoleBody) => apiFetch("/roles", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+export function useUpdateRole() {
+  const invalidate = useInvalidate([["roles"]]);
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Partial<RoleBody> }) =>
+      apiFetch(`/roles/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+export function useDeleteRole() {
+  const invalidate = useInvalidate([["roles"]]);
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/roles/${id}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
+}
+
 export function useTestNotification() {
   return useMutation({
     mutationFn: (id: string) =>

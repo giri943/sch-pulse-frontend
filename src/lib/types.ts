@@ -57,6 +57,20 @@ export interface UserLite {
   avatarUrl?: string | null;
 }
 
+export interface Role {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+  isSystem: boolean;
+  userCount?: number;
+}
+
+export interface PermissionGroup {
+  resource: string;
+  items: { key: string; label: string }[];
+}
+
 export interface Me {
   id: string;
   name: string;

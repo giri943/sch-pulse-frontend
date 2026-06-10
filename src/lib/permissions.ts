@@ -12,6 +12,9 @@ export const PERM = {
   USER_CREATE: "user:create",
   USER_UPDATE: "user:update",
   ROLE_READ: "role:read",
+  ROLE_CREATE: "role:create",
+  ROLE_UPDATE: "role:update",
+  ROLE_DELETE: "role:delete",
   RULE_READ: "rule:read",
   AUDIT_READ: "audit:read",
 } as const;

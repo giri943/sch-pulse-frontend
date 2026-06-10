@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 import { useCreateUser, useUpdateUser } from "@/lib/mutations";
+import { useMe, can, PERM } from "@/lib/permissions";
 import { Button, Card, Field, Input, Modal, Select, StatusBadge } from "@/components/ui";
 
 interface RoleLite {
@@ -19,9 +20,11 @@ interface UserRow {
   role: { id: string; name: string } | null;
 }
 
-export default function UsersPage() {
+export function UsersPanel() {
+  const { data: me } = useMe();
   const [open, setOpen] = useState(false);
   const update = useUpdateUser();
+  const canManage = can(me, PERM.USER_UPDATE);
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => apiFetch<{ data: UserRow[] }>("/users?limit=100"),
@@ -29,67 +32,67 @@ export default function UsersPage() {
   const { data: roles } = useQuery({ queryKey: ["roles"], queryFn: () => apiFetch<RoleLite[]>("/roles") });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Users</h1>
-        <Button onClick={() => setOpen(true)}>+ New User</Button>
+    <Card>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-semibold">Users</h3>
+          <p className="text-xs text-muted">Manage accounts and assign roles.</p>
+        </div>
+        {can(me, PERM.USER_CREATE) && <Button onClick={() => setOpen(true)}>+ New User</Button>}
       </div>
 
-      <Card>
-        {isLoading ? (
-          <p className="text-muted text-sm">Loading…</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="text-muted text-left">
-              <tr>
-                <th className="py-2">Name</th>
-                <th>Email</th>
-                <th>Auth</th>
-                <th>Role</th>
-                <th>Status</th>
+      {isLoading ? (
+        <p className="text-muted text-sm">Loading…</p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead className="text-muted text-left">
+            <tr>
+              <th className="py-2">Name</th>
+              <th>Email</th>
+              <th>Auth</th>
+              <th>Role</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users?.data.map((u) => (
+              <tr key={u.id} className="border-t border-border">
+                <td className="py-2.5">{u.name}</td>
+                <td className="text-muted">{u.email}</td>
+                <td className="text-muted">{u.authProvider}</td>
+                <td>
+                  <Select
+                    value={u.role?.id ?? ""}
+                    disabled={!canManage}
+                    onChange={(e) => update.mutate({ id: u.id, body: { roleId: e.target.value } })}
+                    className="max-w-[160px]"
+                  >
+                    {roles?.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </Select>
+                </td>
+                <td>
+                  <button
+                    disabled={!canManage}
+                    onClick={() =>
+                      update.mutate({ id: u.id, body: { status: u.status === "active" ? "disabled" : "active" } })
+                    }
+                    title="Toggle status"
+                  >
+                    <StatusBadge status={u.status} />
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {users?.data.map((u) => (
-                <tr key={u.id} className="border-t border-border">
-                  <td className="py-2.5">{u.name}</td>
-                  <td className="text-muted">{u.email}</td>
-                  <td className="text-muted">{u.authProvider}</td>
-                  <td>
-                    <Select
-                      value={u.role?.id ?? ""}
-                      onChange={(e) => update.mutate({ id: u.id, body: { roleId: e.target.value } })}
-                      className="max-w-[160px]"
-                    >
-                      {roles?.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </td>
-                  <td>
-                    <button
-                      onClick={() =>
-                        update.mutate({
-                          id: u.id,
-                          body: { status: u.status === "active" ? "disabled" : "active" },
-                        })
-                      }
-                      title="Toggle status"
-                    >
-                      <StatusBadge status={u.status} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       <NewUserModal open={open} onClose={() => setOpen(false)} roles={roles ?? []} />
-    </div>
+    </Card>
   );
 }
 
@@ -126,7 +129,13 @@ function NewUserModal({ open, onClose, roles }: { open: boolean; onClose: () => 
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </Field>
         <Field label="Temporary password">
-          <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Min 8 chars, mixed case + number" />
+          <Input
+            type="text"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Min 8 chars, mixed case + number"
+          />
         </Field>
         <Field label="Role">
           <Select value={roleId} onChange={(e) => setRoleId(e.target.value)} required>

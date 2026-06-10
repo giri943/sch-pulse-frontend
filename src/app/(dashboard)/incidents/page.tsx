@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 import type { IncidentRow, Paginated } from "@/lib/types";
-import { Card, StatusBadge } from "@/components/ui";
+import { PageHeader, Card, StatusBadge, StatusDot, Select, Skeleton, EmptyState } from "@/components/ui";
 
 function duration(sec: number | null): string {
   if (sec == null) return "ongoing";
@@ -13,43 +15,52 @@ function duration(sec: number | null): string {
 }
 
 export default function IncidentsPage() {
+  const [status, setStatus] = useState("");
   const { data, isLoading } = useQuery({
-    queryKey: ["incidents"],
-    queryFn: () => apiFetch<Paginated<IncidentRow>>("/incidents?limit=50"),
+    queryKey: ["incidents", status],
+    queryFn: () => apiFetch<Paginated<IncidentRow>>(`/incidents?limit=50${status ? `&status=${status}` : ""}`),
     refetchInterval: 30_000,
   });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Incidents</h1>
+    <div className="space-y-6 max-w-[1100px]">
+      <PageHeader
+        title="Incidents"
+        subtitle="Downtime events across the monitors you can see."
+        actions={
+          <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-auto">
+            <option value="">All</option>
+            <option value="open">Open</option>
+            <option value="resolved">Resolved</option>
+          </Select>
+        }
+      />
+
       <Card>
         {isLoading ? (
-          <p className="text-muted text-sm">Loading…</p>
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
+          </div>
         ) : !data?.data.length ? (
-          <p className="text-muted text-sm">No incidents recorded.</p>
+          <EmptyState icon="✅" title="No incidents" description="Nothing to see here — all monitored services are healthy." />
         ) : (
-          <table className="w-full text-sm">
-            <thead className="text-muted text-left">
-              <tr>
-                <th className="py-2">Monitor</th>
-                <th>Started</th>
-                <th>Duration</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.data.map((i) => (
-                <tr key={i._id} className="border-t border-border">
-                  <td className="py-2.5">{i.monitorId?.name ?? "—"}</td>
-                  <td className="text-muted">{new Date(i.startedAt).toLocaleString()}</td>
-                  <td className="text-muted">{duration(i.durationSec)}</td>
-                  <td>
+          <ul className="relative space-y-1 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-border">
+            {data.data.map((i) => (
+              <li key={i._id} className="relative flex items-center gap-3 pl-6 py-2.5">
+                <span className="absolute left-0 top-1/2 -translate-y-1/2"><StatusDot status={i.status} pulse /></span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Link href={i.monitorId ? `/monitors/${(i as unknown as { monitorId: { _id?: string } }).monitorId?._id ?? ""}` : "#"} className="text-sm font-medium truncate hover:text-brand">
+                      {i.monitorId?.name ?? "Monitor"}
+                    </Link>
                     <StatusBadge status={i.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="text-[11px] text-muted truncate">{i.monitorId?.url ?? ""} · started {new Date(i.startedAt).toLocaleString()}</div>
+                </div>
+                <span className="text-sm text-muted shrink-0">{duration(i.durationSec)}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </Card>
     </div>

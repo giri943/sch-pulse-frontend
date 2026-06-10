@@ -1,40 +1,56 @@
 "use client";
 
-import { useMe } from "@/lib/permissions";
-import { Card, CardTitle } from "@/components/ui";
+import { useState } from "react";
+import { useMe, can, PERM } from "@/lib/permissions";
+import { PageHeader, Card, CardTitle, Tabs, Badge } from "@/components/ui";
+import { UsersPanel } from "@/components/admin/UsersPanel";
+import { RolesPanel } from "@/components/admin/RolesPanel";
 
 export default function SettingsPage() {
-  const { data } = useMe();
+  const { data: me } = useMe();
+  const [tab, setTab] = useState("account");
+
+  const tabs = [
+    { key: "account", label: "Account" },
+    ...(can(me, PERM.USER_READ) ? [{ key: "users", label: "Users" }] : []),
+    ...(can(me, PERM.ROLE_READ) ? [{ key: "roles", label: "Roles" }] : []),
+  ];
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Settings</h1>
-      <Card>
-        <CardTitle>Your account</CardTitle>
-        {data ? (
-          <div className="text-sm space-y-1">
-            <div>
-              <span className="text-muted">Name:</span> {data.name}
-            </div>
-            <div>
-              <span className="text-muted">Email:</span> {data.email}
-            </div>
-            <div>
-              <span className="text-muted">Role:</span> {data.role.name}
-            </div>
-          </div>
-        ) : (
-          <p className="text-muted text-sm">Loading…</p>
-        )}
-      </Card>
-      <Card>
-        <CardTitle>Access</CardTitle>
-        <p className="text-muted text-sm">
-          Your role grants {data?.permissions.length ?? 0} permission(s). Role management
-          (custom roles &amp; permissions) is on the roadmap (Phase 2). Super admins manage
-          users from the <b>Users</b> section.
-        </p>
-      </Card>
+    <div className="space-y-6 max-w-[1100px]">
+      <PageHeader title="Settings" subtitle="Your account, team members, and access control." />
+      <Tabs tabs={tabs} active={tab} onChange={setTab} />
+      {tab === "account" && <AccountPanel />}
+      {tab === "users" && can(me, PERM.USER_READ) && <UsersPanel />}
+      {tab === "roles" && can(me, PERM.ROLE_READ) && <RolesPanel />}
+    </div>
+  );
+}
+
+function AccountPanel() {
+  const { data } = useMe();
+  return (
+    <Card>
+      <CardTitle>Your account</CardTitle>
+      {data ? (
+        <div className="grid sm:grid-cols-2 gap-4 text-sm">
+          <Row label="Name" value={data.name} />
+          <Row label="Email" value={data.email} />
+          <Row label="Role" value={<Badge tone="brand">{data.role.name}</Badge>} />
+          <Row label="Permissions" value={`${data.permissions.length} granted`} />
+        </div>
+      ) : (
+        <p className="text-muted text-sm">Loading…</p>
+      )}
+    </Card>
+  );
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between border border-border rounded-lg px-3 py-2.5 bg-bg">
+      <span className="text-muted">{label}</span>
+      <span className="font-medium">{value}</span>
     </div>
   );
 }

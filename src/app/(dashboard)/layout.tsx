@@ -1,30 +1,93 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { apiFetch, getAccessToken, setAccessToken } from "@/lib/api-client";
 import { SchbangLogo } from "@/components/SchbangLogo";
-import { useMe, can, PERM } from "@/lib/permissions";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Icon } from "@/components/icons";
+import { useMe } from "@/lib/permissions";
+import { cn } from "@/lib/cn";
 
-const NAV: { href: string; label: string; icon: string; perm?: string }[] = [
-  { href: "/", label: "Overview", icon: "📊" },
-  { href: "/monitors", label: "Monitors", icon: "📡" },
-  { href: "/incidents", label: "Incidents", icon: "⚠️" },
-  { href: "/users", label: "Users", icon: "👥", perm: PERM.USER_READ },
-  { href: "/settings", label: "Settings", icon: "⚙️" },
-];
+function NavContent({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const type = searchParams.get("type");
+  const { data: me } = useMe();
+  const [monOpen, setMonOpen] = useState(true);
+
+  const isMonitors = pathname.startsWith("/monitors");
+  const link = (active: boolean) =>
+    cn(
+      "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
+      active ? "bg-brand/15 text-fg font-medium" : "text-muted hover:text-fg hover:bg-surface-2",
+    );
+
+  const sub = (active: boolean) =>
+    cn(
+      "flex items-center gap-2 pl-10 pr-3 py-1.5 rounded-lg text-sm transition-colors",
+      active ? "text-fg font-medium" : "text-muted hover:text-fg hover:bg-surface-2",
+    );
+
+  return (
+    <nav className="flex-1 space-y-1 overflow-y-auto">
+      <Link href="/" onClick={onNavigate} className={link(pathname === "/")}>
+        <Icon name="dashboard" /> Dashboard
+      </Link>
+
+      <div>
+        <button
+          onClick={() => setMonOpen((v) => !v)}
+          className={cn(link(isMonitors && !type), "w-full justify-between")}
+        >
+          <span className="flex items-center gap-2.5">
+            <Icon name="activity" /> Monitoring
+          </span>
+          <Icon name="chevron" width={14} height={14} className={cn("transition-transform", monOpen ? "" : "-rotate-90")} />
+        </button>
+        {monOpen && (
+          <div className="mt-1 space-y-0.5">
+            <Link href="/monitors" onClick={onNavigate} className={sub(isMonitors && !type)}>
+              All monitors
+            </Link>
+            <Link href="/monitors?type=website" onClick={onNavigate} className={sub(type === "website")}>
+              <Icon name="globe" width={14} height={14} /> Websites
+            </Link>
+            <Link href="/monitors?type=api" onClick={onNavigate} className={sub(type === "api")}>
+              <Icon name="braces" width={14} height={14} /> APIs
+            </Link>
+            <Link href="/monitors?type=ssl" onClick={onNavigate} className={sub(type === "ssl")}>
+              <Icon name="shield" width={14} height={14} /> SSL
+            </Link>
+          </div>
+        )}
+      </div>
+
+      <Link href="/incidents" onClick={onNavigate} className={link(pathname.startsWith("/incidents"))}>
+        <Icon name="alert" /> Incidents
+      </Link>
+      <Link href="/settings" onClick={onNavigate} className={link(pathname.startsWith("/settings"))}>
+        <Icon name="gear" /> Settings
+      </Link>
+
+      {me && (
+        <div className="pt-2 text-[11px] text-muted px-3">
+          {me.role.name} · {me.permissions.length} perms
+        </div>
+      )}
+    </nav>
+  );
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const router = useRouter();
   const { data: me } = useMe();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!getAccessToken()) router.replace("/login");
   }, [router]);
-
-  const navItems = NAV.filter((item) => !item.perm || can(me, item.perm));
 
   async function logout() {
     await apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
@@ -32,34 +95,64 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.replace("/login");
   }
 
+  const footer = (
+    <div className="border-t border-border pt-3 mt-3">
+      <div className="flex items-center gap-2 px-1">
+        <div className="h-8 w-8 grid place-items-center rounded-full bg-brand/20 text-brand text-xs font-semibold shrink-0">
+          {(me?.name ?? "?").slice(0, 1).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm truncate">{me?.name ?? "…"}</div>
+          <div className="text-[11px] text-muted truncate">{me?.email}</div>
+        </div>
+        <ThemeToggle />
+      </div>
+      <button onClick={logout} className="mt-2 w-full text-left px-3 py-2 text-sm text-muted hover:text-fg rounded-lg hover:bg-surface-2">
+        ↪ Sign out
+      </button>
+    </div>
+  );
+
+  const sidebarInner = (onNavigate?: () => void) => (
+    <>
+      <div className="px-2 py-3">
+        <SchbangLogo fontSize={20} />
+      </div>
+      <Suspense fallback={<div className="flex-1" />}>
+        <NavContent onNavigate={onNavigate} />
+      </Suspense>
+      {footer}
+    </>
+  );
+
   return (
     <div className="flex min-h-screen">
-      <aside className="w-60 border-r border-border bg-surface p-4 flex flex-col">
-        <div className="px-2 py-3">
-          <SchbangLogo fontSize={20} />
-        </div>
-        <nav className="mt-4 flex-1 space-y-1">
-          {navItems.map((item) => {
-            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                  active ? "bg-brand/15 text-fg" : "text-muted hover:text-fg hover:bg-bg"
-                }`}
-              >
-                <span>{item.icon}</span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <button onClick={logout} className="px-3 py-2 text-sm text-muted hover:text-fg text-left">
-          ↪ Logout
-        </button>
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-64 shrink-0 border-r border-border bg-surface p-4 flex-col sticky top-0 h-screen">
+        {sidebarInner()}
       </aside>
-      <main className="flex-1 p-6 overflow-auto">{children}</main>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute left-0 top-0 h-full w-72 bg-surface border-r border-border p-4 flex flex-col animate-fade-in">
+            {sidebarInner(() => setMobileOpen(false))}
+          </aside>
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Mobile top bar */}
+        <header className="lg:hidden flex items-center justify-between border-b border-border bg-surface px-4 h-14 sticky top-0 z-30">
+          <button onClick={() => setMobileOpen(true)} className="text-muted hover:text-fg p-2 -ml-2" aria-label="Menu">
+            ☰
+          </button>
+          <SchbangLogo fontSize={18} />
+          <ThemeToggle />
+        </header>
+        <main className="flex-1 p-5 sm:p-6 lg:p-8 overflow-x-hidden">{children}</main>
+      </div>
     </div>
   );
 }

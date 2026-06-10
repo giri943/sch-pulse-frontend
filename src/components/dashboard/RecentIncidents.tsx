@@ -1,7 +1,7 @@
 "use client";
 
 import { useRecentIncidents } from "@/lib/hooks";
-import { Card, CardTitle, StatusBadge } from "@/components/ui";
+import { Card, CardTitle, StatusDot, Skeleton, EmptyState } from "@/components/ui";
 
 function duration(sec: number | null): string {
   if (sec == null) return "ongoing";
@@ -12,24 +12,32 @@ function duration(sec: number | null): string {
 
 export function RecentIncidents() {
   const { data, isLoading } = useRecentIncidents();
+
   return (
     <Card>
-      <CardTitle>Recent Incidents</CardTitle>
+      <CardTitle>Recent incidents</CardTitle>
       {isLoading ? (
-        <p className="text-muted text-sm">Loading…</p>
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-12" />
+          ))}
+        </div>
       ) : !data?.length ? (
-        <p className="text-muted text-sm">No incidents 🎉</p>
+        <EmptyState icon="✅" title="All clear" description="No incidents recorded. Everything is operating normally." />
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="relative space-y-1 before:absolute before:left-[5px] before:top-1 before:bottom-1 before:w-px before:bg-border">
           {data.map((i) => (
-            <li key={i._id} className="flex items-center justify-between py-2.5">
-              <div>
-                <div className="text-sm">{i.monitorId?.name ?? "—"}</div>
-                <div className="text-xs text-muted">
-                  {new Date(i.startedAt).toLocaleString()} · {duration(i.durationSec)}
+            <li key={i._id} className="relative flex items-start gap-3 pl-5 py-1.5">
+              <span className="absolute left-0 top-2.5">
+                <StatusDot status={i.status} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm truncate">{i.monitorId?.name ?? "Monitor"}</div>
+                <div className="text-[11px] text-muted">
+                  {i.status === "open" ? "Down" : "Recovered"} · {new Date(i.startedAt).toLocaleString()}
                 </div>
               </div>
-              <StatusBadge status={i.status} />
+              <span className="text-xs text-muted shrink-0">{duration(i.durationSec)}</span>
             </li>
           ))}
         </ul>
