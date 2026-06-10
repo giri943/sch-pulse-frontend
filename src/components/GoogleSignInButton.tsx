@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTheme } from "@/providers/theme-provider";
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 const GSI_SRC = "https://accounts.google.com/gsi/client";
 
-// Minimal typing for the Google Identity Services global.
 interface GsiId {
   initialize: (cfg: { client_id: string; callback: (r: { credential: string }) => void }) => void;
   renderButton: (el: HTMLElement, opts: Record<string, unknown>) => void;
@@ -22,6 +22,7 @@ function loadGsi(): Promise<void> {
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${GSI_SRC}"]`);
     if (existing) {
       existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error("Failed to load Google Sign-In")));
       return;
     }
     const s = document.createElement("script");
@@ -34,7 +35,7 @@ function loadGsi(): Promise<void> {
   });
 }
 
-/** Renders the Google "Continue with" button; calls onToken with the ID token. */
+/** Renders the Google "Continue with" button; theme follows the app theme. */
 export function GoogleSignInButton({
   onToken,
   onError,
@@ -43,6 +44,7 @@ export function GoogleSignInButton({
   onError?: (msg: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!CLIENT_ID || !ref.current) return;
@@ -54,19 +56,23 @@ export function GoogleSignInButton({
           client_id: CLIENT_ID,
           callback: (r) => onToken(r.credential),
         });
+        // Clear any previously-rendered button before re-rendering (e.g. on theme change).
+        ref.current.innerHTML = "";
         window.google.accounts.id.renderButton(ref.current, {
-          theme: "filled_black",
+          // GIS only ships light/dark variants — match the app theme so it doesn't show a white box on dark.
+          theme: theme === "dark" ? "filled_black" : "outline",
           size: "large",
           text: "continue_with",
           shape: "pill",
-          width: 300,
+          logo_alignment: "center",
+          width: 280,
         });
       })
       .catch((e) => onError?.(e instanceof Error ? e.message : "Google Sign-In failed"));
     return () => {
       cancelled = true;
     };
-  }, [onToken, onError]);
+  }, [onToken, onError, theme]);
 
   if (!CLIENT_ID) {
     return (
@@ -75,5 +81,6 @@ export function GoogleSignInButton({
       </p>
     );
   }
-  return <div ref={ref} className="flex justify-center" />;
+  // A subtle rounded frame that matches the surface, so the GIS iframe never looks like a stray white box.
+  return <div ref={ref} className="flex justify-center min-h-[44px] [color-scheme:auto]" />;
 }
