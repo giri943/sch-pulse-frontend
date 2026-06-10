@@ -11,7 +11,7 @@ import { useMe } from "@/lib/permissions";
 export default function OverviewPage() {
   const { data: me } = useMe();
   return (
-    <div className="space-y-6 max-w-[1400px]">
+    <div className="space-y-6">
       <PageHeader
         title="Overview"
         subtitle={me ? `Welcome back, ${me.name.split(" ")[0]} — here's what's happening.` : "Health across your monitors."}

@@ -54,7 +54,7 @@ function MonitorsInner() {
   const title = typeFilter ? `${typeFilter.toUpperCase()} monitors` : "Monitors";
 
   return (
-    <div className="space-y-6 max-w-[1400px]">
+    <div className="space-y-6">
       <PageHeader
         title={title}
         subtitle="Search, filter and manage everything you're watching."
@@ -100,7 +100,7 @@ function MonitorsInner() {
       {archived ? (
         <ArchivedMonitors canManage={canManage} />
       ) : isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-40" />
           ))}
@@ -115,7 +115,7 @@ function MonitorsInner() {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-3">
           {monitors.map((m) => (
             <MonitorCard key={m._id} monitor={m} canManage={canManage} onEdit={(mm) => { setEditing(mm); setOpen(true); }} />
           ))}

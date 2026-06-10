@@ -74,7 +74,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
   ];
 
   return (
-    <div className="space-y-6 max-w-[1200px]">
+    <div className="space-y-6">
       <Link href="/monitors" className="text-sm text-muted hover:text-fg">‹ Monitors</Link>
 
       {/* Header */}

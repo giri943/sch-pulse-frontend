@@ -12,6 +12,9 @@ const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      screens: {
+        "3xl": "1920px",
+      },
       colors: {
         bg: token("bg"),
         surface: token("surface"),

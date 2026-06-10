@@ -23,7 +23,7 @@ export default function IncidentsPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-[1100px]">
+    <div className="space-y-6 mx-auto w-full max-w-[1200px]">
       <PageHeader
         title="Incidents"
         subtitle="Downtime events across the monitors you can see."

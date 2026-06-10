@@ -19,7 +19,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-6 max-w-[1100px]">
+    <div className="space-y-6 mx-auto w-full max-w-[1200px]">
       <PageHeader title="Settings" subtitle="Your account, team members, and access control." />
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
       {tab === "account" && <AccountPanel />}

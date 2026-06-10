@@ -151,7 +151,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SchbangLogo fontSize={18} />
           <ThemeToggle />
         </header>
-        <main className="flex-1 p-5 sm:p-6 lg:p-8 overflow-x-hidden">{children}</main>
+        <main className="flex-1 p-5 sm:p-6 lg:p-8 overflow-x-hidden">
+          <div className="mx-auto w-full max-w-[1800px] 3xl:max-w-[2100px]">{children}</div>
+        </main>
       </div>
     </div>
   );
