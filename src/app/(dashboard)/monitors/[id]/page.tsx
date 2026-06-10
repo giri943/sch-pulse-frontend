@@ -88,6 +88,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
               {monitor?.name ?? "…"} {monitor && <StatusBadge status={monitor.enabled ? monitor.status : "paused"} />}
             </h1>
             <a href={monitor?.url} target="_blank" rel="noreferrer" className="text-sm text-muted hover:text-brand">{monitor?.url}</a>
+            {monitor && <ExpiryChip expiresAt={monitor.expiresAt ?? null} />}
           </div>
         </div>
         {monitor && (
@@ -226,7 +227,12 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
           <CardTitle right={monitor && <Button size="sm" variant="ghost" onClick={runTest} disabled={test.isPending}>🔔 Send test</Button>}>
             Alert recipients
           </CardTitle>
-          <p className="text-xs text-muted mb-3">Channels: <Badge tone="brand">Email</Badge> <span className="opacity-50">SMS · Slack · Teams (coming soon)</span></p>
+          <p className="text-xs text-muted mb-3">Channels: <Badge tone="brand">Email</Badge>{" "}
+            {((monitor?.channels ?? []).filter((c) => typeof c === "object") as { id: string; name: string }[]).map((c) => (
+              <Badge key={c.id} tone="up">💬 {c.name}</Badge>
+            ))}
+            <span className="opacity-50"> WhatsApp (planned)</span>
+          </p>
           {recipients.length ? (
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
@@ -249,5 +255,16 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
 
       {monitor && <MonitorFormModal key={monitor._id} open={editing} onClose={() => setEditing(false)} monitor={monitor} />}
     </div>
+  );
+}
+
+function ExpiryChip({ expiresAt }: { expiresAt: string | null }) {
+  if (!expiresAt) return <Badge tone="neutral">♾ No expiry</Badge>;
+  const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
+  const tone = days <= 3 ? "down" : days <= 7 ? "degraded" : "neutral";
+  return (
+    <Badge tone={tone}>
+      {days < 0 ? "Expired" : `Expires in ${days}d`} · {new Date(expiresAt).toLocaleDateString()}
+    </Badge>
   );
 }

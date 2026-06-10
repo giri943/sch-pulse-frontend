@@ -13,6 +13,8 @@ export interface MonitorBody {
   timeoutMs?: number;
   members?: string[];
   extraAlertEmails?: string[];
+  channels?: string[];
+  expiresAt?: string | null;
 }
 
 function useInvalidate(keys: string[][]) {
@@ -42,6 +44,49 @@ export function useDeleteMonitor() {
     onSuccess: invalidate,
   });
 }
+export function useRestoreMonitor() {
+  const invalidate = useInvalidate([["monitors"], ["dashboard"]]);
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/monitors/${id}/restore`, { method: "POST" }),
+    onSuccess: invalidate,
+  });
+}
+
+/* ── Notification channels ── */
+export interface ChannelBody {
+  name: string;
+  type?: string;
+  webhookUrl: string;
+  enabled?: boolean;
+}
+export function useCreateChannel() {
+  const invalidate = useInvalidate([["channels"]]);
+  return useMutation({
+    mutationFn: (body: ChannelBody) => apiFetch("/channels", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+export function useUpdateChannel() {
+  const invalidate = useInvalidate([["channels"]]);
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Partial<ChannelBody> }) =>
+      apiFetch(`/channels/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+export function useDeleteChannel() {
+  const invalidate = useInvalidate([["channels"]]);
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/channels/${id}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
+}
+export function useTestChannel() {
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<{ message: string }>(`/channels/${id}/test`, { method: "POST" }),
+  });
+}
+
 export function useMonitorAction() {
   const invalidate = useInvalidate([["monitors"], ["monitor"], ["dashboard"]]);
   return useMutation({

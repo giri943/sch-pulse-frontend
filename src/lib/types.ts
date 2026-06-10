@@ -80,6 +80,16 @@ export interface Me {
   permissions: string[];
 }
 
+export interface ChannelLite {
+  id: string;
+  name: string;
+  type: string;
+}
+export interface Channel extends ChannelLite {
+  webhookUrl: string;
+  enabled: boolean;
+}
+
 export interface Monitor {
   _id: string;
   name: string;
@@ -90,6 +100,9 @@ export interface Monitor {
   expectedStatusCode?: number;
   members?: (string | UserLite)[];
   extraAlertEmails?: string[];
+  channels?: (string | ChannelLite)[];
+  expiresAt?: string | null;
+  softDeletedAt?: string | null;
   enabled: boolean;
   status: MonitorStatus;
   lastResponseTimeMs?: number;

@@ -5,6 +5,7 @@ import { useMe, can, PERM } from "@/lib/permissions";
 import { PageHeader, Card, CardTitle, Tabs, Badge } from "@/components/ui";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { RolesPanel } from "@/components/admin/RolesPanel";
+import { ChannelsPanel } from "@/components/admin/ChannelsPanel";
 
 export default function SettingsPage() {
   const { data: me } = useMe();
@@ -14,6 +15,7 @@ export default function SettingsPage() {
     { key: "account", label: "Account" },
     ...(can(me, PERM.USER_READ) ? [{ key: "users", label: "Users" }] : []),
     ...(can(me, PERM.ROLE_READ) ? [{ key: "roles", label: "Roles" }] : []),
+    ...(can(me, PERM.CHANNEL_MANAGE) ? [{ key: "channels", label: "Channels" }] : []),
   ];
 
   return (
@@ -23,6 +25,7 @@ export default function SettingsPage() {
       {tab === "account" && <AccountPanel />}
       {tab === "users" && can(me, PERM.USER_READ) && <UsersPanel />}
       {tab === "roles" && can(me, PERM.ROLE_READ) && <RolesPanel />}
+      {tab === "channels" && can(me, PERM.CHANNEL_MANAGE) && <ChannelsPanel />}
     </div>
   );
 }

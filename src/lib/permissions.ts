@@ -16,6 +16,8 @@ export const PERM = {
   ROLE_UPDATE: "role:update",
   ROLE_DELETE: "role:delete",
   RULE_READ: "rule:read",
+  CHANNEL_READ: "channel:read",
+  CHANNEL_MANAGE: "channel:manage",
   AUDIT_READ: "audit:read",
 } as const;
 

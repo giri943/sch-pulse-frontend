@@ -10,6 +10,8 @@ import { Button, PageHeader, Input, Select, Skeleton, EmptyState } from "@/compo
 import { Icon } from "@/components/icons";
 import { MonitorCard } from "@/components/MonitorCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
+import { ArchivedMonitors } from "@/components/ArchivedMonitors";
+import { cn } from "@/lib/cn";
 
 function MonitorsInner() {
   const params = useSearchParams();
@@ -19,6 +21,7 @@ function MonitorsInner() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState("name");
+  const [archived, setArchived] = useState(false);
 
   const typeFilter = params.get("type"); // website | api | ssl | null (from sidebar)
 
@@ -83,9 +86,20 @@ function MonitorsInner() {
           <option value="latency">Sort: Latency</option>
           <option value="status">Sort: Status</option>
         </Select>
+        <button
+          onClick={() => setArchived((v) => !v)}
+          className={cn(
+            "rounded-lg border px-3 py-2 text-sm transition-colors",
+            archived ? "border-brand bg-brand/15 text-fg" : "border-border text-muted hover:text-fg",
+          )}
+        >
+          🗃️ Archived
+        </button>
       </div>
 
-      {isLoading ? (
+      {archived ? (
+        <ArchivedMonitors canManage={canManage} />
+      ) : isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-40" />
