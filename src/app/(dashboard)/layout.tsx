@@ -84,10 +84,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { data: me } = useMe();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!getAccessToken()) router.replace("/login");
+    else setReady(true);
   }, [router]);
+
+  // Don't render the dashboard until auth is confirmed — avoids the flash-then-redirect.
+  if (!ready) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-bg">
+        <SchbangLogo fontSize={24} />
+      </div>
+    );
+  }
 
   async function logout() {
     await apiFetch("/auth/logout", { method: "POST" }).catch(() => {});

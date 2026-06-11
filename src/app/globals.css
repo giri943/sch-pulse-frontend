@@ -91,6 +91,42 @@ body,
 .pulse-glow { animation: pulse-glow 1.5s ease-in-out infinite; transform-origin: center; }
 .ecg-trace { stroke-dasharray: 16 100; stroke-dashoffset: 0; animation: ecg-trace 1.5s linear infinite; }
 
+/* ── Login intro animation ─────────────────────────────── */
+@keyframes intro-ecg-draw {
+  0% { stroke-dashoffset: 2000; opacity: 0.4; }
+  10% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes intro-blip {
+  from { stroke-dashoffset: 2000; }
+  to { stroke-dashoffset: 1000; }
+}
+@keyframes intro-word {
+  0% { opacity: 0; transform: translateY(10px) scale(0.94); filter: blur(6px); }
+  55% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes intro-beam {
+  0% { transform: translateX(-140%) skewX(-12deg); opacity: 0; }
+  35% { opacity: 0.8; }
+  100% { transform: translateX(140%) skewX(-12deg); opacity: 0; }
+}
+@keyframes intro-glow-pulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.9); }
+  45% { opacity: 0.75; transform: scale(1.15); }
+}
+@keyframes intro-leave {
+  to { opacity: 0; visibility: hidden; }
+}
+
+.intro-ecg { stroke-dasharray: 2000; animation: intro-ecg-draw 1.9s ease-out forwards; }
+.intro-blip { stroke-dasharray: 40 2000; animation: intro-blip 1.9s linear forwards; }
+.intro-word { animation: intro-word 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.3s both; }
+.intro-beam { animation: intro-beam 1.6s ease-in-out 0.5s; }
+.intro-glow-pulse { animation: intro-glow-pulse 1.4s ease-in-out infinite; }
+.intro-leaving { animation: intro-leave 0.55s ease forwards; }
+
 @media (prefers-reduced-motion: reduce) {
-  .pulse-beat, .pulse-glow, .ecg-trace, .skeleton::after { animation: none; }
+  .pulse-beat, .pulse-glow, .ecg-trace, .skeleton::after,
+  .intro-ecg, .intro-blip, .intro-word, .intro-beam, .intro-glow-pulse { animation: none; }
 }

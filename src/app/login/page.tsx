@@ -6,6 +6,7 @@ import { apiFetch, setAccessToken } from "@/lib/api-client";
 import { SchbangLogo } from "@/components/SchbangLogo";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LoginIntro } from "@/components/LoginIntro";
 import { Button, Field, Input } from "@/components/ui";
 
 export default function LoginPage() {
@@ -43,6 +44,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
+      <LoginIntro />
       {/* ambient gradient */}
       <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-96 w-[42rem] rounded-full bg-brand/20 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 rounded-full bg-up/10 blur-[100px]" />
