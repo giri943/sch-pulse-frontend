@@ -44,10 +44,23 @@ body {
   border-color: rgb(var(--border));
 }
 
-/* Smooth theme transitions on the big surfaces (not everything, to avoid jank). */
-body,
-.theme-transition {
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+/* Smooth, synchronized color cross-fade — only while actively switching theme. */
+html.theme-animating,
+html.theme-animating *,
+html.theme-animating *::before,
+html.theme-animating *::after {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    fill 0.25s ease,
+    stroke 0.25s ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-animating,
+  html.theme-animating * {
+    transition: none !important;
+  }
 }
 
 /* Thin, themed scrollbars */

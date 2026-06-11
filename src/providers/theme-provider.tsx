@@ -9,8 +9,14 @@ interface ThemeCtx {
 }
 const Ctx = createContext<ThemeCtx>({ theme: "dark", toggle: () => {} });
 
-function apply(theme: Theme) {
+function apply(theme: Theme, animate = false) {
   const el = document.documentElement;
+  if (animate) {
+    // Smoothly cross-fade all colors for the duration of the switch, then stop
+    // (so transitions don't slow down normal interactions / hovers).
+    el.classList.add("theme-animating");
+    window.setTimeout(() => el.classList.remove("theme-animating"), 300);
+  }
   el.classList.toggle("light", theme === "light");
   el.classList.toggle("dark", theme === "dark");
 }
@@ -28,7 +34,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme((prev) => {
       const next = prev === "dark" ? "light" : "dark";
       localStorage.setItem("pulse_theme", next);
-      apply(next);
+      apply(next, true);
       return next;
     });
   }, []);
