@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, setAccessToken } from "@/lib/api-client";
 import { SchbangLogo } from "@/components/SchbangLogo";
@@ -32,16 +32,19 @@ export default function LoginPage() {
     }
   }
 
-  async function onGoogle(idToken: string) {
-    setError(null);
-    try {
-      const res = await apiFetch<{ accessToken: string }>("/auth/google", { method: "POST", body: JSON.stringify({ idToken }) });
-      setAccessToken(res.accessToken);
-      router.replace("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Google sign-in failed");
-    }
-  }
+  const onGoogle = useCallback(
+    async (idToken: string) => {
+      setError(null);
+      try {
+        const res = await apiFetch<{ accessToken: string }>("/auth/google", { method: "POST", body: JSON.stringify({ idToken }) });
+        setAccessToken(res.accessToken);
+        router.replace("/");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Google sign-in failed");
+      }
+    },
+    [router],
+  );
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">

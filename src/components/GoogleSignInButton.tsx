@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { useTheme } from "@/providers/theme-provider";
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -36,7 +36,7 @@ function loadGsi(): Promise<void> {
 }
 
 /** Renders the Google "Continue with" button; theme follows the app theme. */
-export function GoogleSignInButton({
+function GoogleSignInButtonImpl({
   onToken,
   onError,
 }: {
@@ -46,6 +46,14 @@ export function GoogleSignInButton({
   const ref = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
 
+  // Keep the latest callbacks in refs so the GIS button only re-initializes on
+  // theme change — NOT on every parent re-render (e.g. each password keystroke),
+  // which would re-fetch the button iframe/fonts and cause flicker.
+  const onTokenRef = useRef(onToken);
+  const onErrorRef = useRef(onError);
+  onTokenRef.current = onToken;
+  onErrorRef.current = onError;
+
   useEffect(() => {
     if (!CLIENT_ID || !ref.current) return;
     let cancelled = false;
@@ -54,7 +62,7 @@ export function GoogleSignInButton({
         if (cancelled || !ref.current || !window.google) return;
         window.google.accounts.id.initialize({
           client_id: CLIENT_ID,
-          callback: (r) => onToken(r.credential),
+          callback: (r) => onTokenRef.current(r.credential),
         });
         // Clear any previously-rendered button before re-rendering (e.g. on theme change).
         ref.current.innerHTML = "";
@@ -68,11 +76,11 @@ export function GoogleSignInButton({
           width: 280,
         });
       })
-      .catch((e) => onError?.(e instanceof Error ? e.message : "Google Sign-In failed"));
+      .catch((e) => onErrorRef.current?.(e instanceof Error ? e.message : "Google Sign-In failed"));
     return () => {
       cancelled = true;
     };
-  }, [onToken, onError, theme]);
+  }, [theme]);
 
   if (!CLIENT_ID) {
     return (
@@ -84,3 +92,7 @@ export function GoogleSignInButton({
   // A subtle rounded frame that matches the surface, so the GIS iframe never looks like a stray white box.
   return <div ref={ref} className="flex justify-center min-h-[44px] [color-scheme:auto]" />;
 }
+
+// Memoized so a parent re-render (typing in the password field) doesn't reconcile
+// the GIS button at all. Combined with the callback refs above, the button mounts once.
+export const GoogleSignInButton = memo(GoogleSignInButtonImpl);
