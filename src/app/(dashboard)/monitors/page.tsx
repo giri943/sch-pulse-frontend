@@ -10,6 +10,7 @@ import { Button, PageHeader, Input, Select, Skeleton, EmptyState } from "@/compo
 import { Icon } from "@/components/icons";
 import { MonitorCard } from "@/components/MonitorCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
+import { JoinMonitorModal } from "@/components/JoinMonitorModal";
 import { ArchivedMonitors } from "@/components/ArchivedMonitors";
 import { cn } from "@/lib/cn";
 
@@ -17,6 +18,7 @@ function MonitorsInner() {
   const params = useSearchParams();
   const { data: me } = useMe();
   const [open, setOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
   const [editing, setEditing] = useState<Monitor | null>(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
@@ -60,9 +62,14 @@ function MonitorsInner() {
         subtitle="Search, filter and manage everything you're watching."
         actions={
           canCreate && (
-            <Button onClick={() => { setEditing(null); setOpen(true); }}>
-              <Icon name="plus" width={15} height={15} /> New Monitor
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={() => setJoinOpen(true)}>
+                <Icon name="search" width={15} height={15} /> Join a monitor
+              </Button>
+              <Button onClick={() => { setEditing(null); setOpen(true); }}>
+                <Icon name="plus" width={15} height={15} /> New Monitor
+              </Button>
+            </div>
           )
         }
       />
@@ -123,6 +130,7 @@ function MonitorsInner() {
       )}
 
       <MonitorFormModal key={editing?._id ?? "new"} open={open} onClose={() => setOpen(false)} monitor={editing} />
+      <JoinMonitorModal open={joinOpen} onClose={() => setJoinOpen(false)} />
     </div>
   );
 }

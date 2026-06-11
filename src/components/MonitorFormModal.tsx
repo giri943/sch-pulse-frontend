@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useCreateMonitor, useUpdateMonitor, type MonitorBody } from "@/lib/mutations";
+import { useCreateMonitor, useUpdateMonitor, useJoinMonitor, type MonitorBody } from "@/lib/mutations";
+import { ApiError } from "@/lib/api-client";
 import type { Monitor, UserLite } from "@/lib/types";
 import { Button, Field, Input, Modal, Select } from "@/components/ui";
 import { UserPicker } from "@/components/UserPicker";
@@ -48,6 +49,7 @@ export function MonitorFormModal({
 }) {
   const create = useCreateMonitor();
   const update = useUpdateMonitor();
+  const join = useJoinMonitor();
 
   const [name, setName] = useState(monitor?.name ?? "");
   const [type, setType] = useState<Monitor["type"]>(monitor?.type ?? "website");
@@ -60,12 +62,12 @@ export function MonitorFormModal({
   const [channels, setChannels] = useState<string[]>(toChannelIds(monitor?.channels));
   const [expiresAt, setExpiresAt] = useState<string>(monitor?.expiresAt ? monitor.expiresAt.slice(0, 10) : "");
   const [error, setError] = useState<string | null>(null);
-  const pending = create.isPending || update.isPending;
+  // Set when the backend reports an existing monitor for this URL (409).
+  const [dup, setDup] = useState<{ id: string; name: string; url: string; alreadyMember: boolean } | null>(null);
+  const pending = create.isPending || update.isPending || join.isPending;
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    const body: MonitorBody = {
+  function buildBody(): MonitorBody {
+    return {
       name,
       type,
       url,
@@ -77,13 +79,82 @@ export function MonitorFormModal({
       channels,
       expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
     };
+  }
+
+  async function runCreate() {
+    setError(null);
     try {
-      if (monitor) await update.mutateAsync({ id: monitor._id, body });
-      else await create.mutateAsync(body);
+      await create.mutateAsync(buildBody());
       onClose();
     } catch (err) {
+      if (err instanceof ApiError && err.code === "DUPLICATE_MONITOR") {
+        const existing = (err.details as { existing?: typeof dup })?.existing;
+        if (existing) {
+          setDup(existing);
+          return;
+        }
+      }
       setError(err instanceof Error ? err.message : "Failed to save monitor");
     }
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (monitor) {
+      try {
+        await update.mutateAsync({ id: monitor._id, body: buildBody() });
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to save monitor");
+      }
+    } else {
+      await runCreate();
+    }
+  }
+
+  async function joinExisting() {
+    if (!dup) return;
+    setError(null);
+    try {
+      await join.mutateAsync(dup.id);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to join monitor");
+    }
+  }
+
+  if (dup) {
+    return (
+      <Modal open={open} onClose={onClose} title="Monitor already exists">
+        <div className="space-y-4">
+          <p className="text-sm text-muted">
+            A monitor is already set up for this URL. To avoid duplicates, only one monitor per target is allowed —
+            join the existing one and it’ll appear on your dashboard with its alerts.
+          </p>
+          <div className="rounded-lg border border-border bg-surface-2 px-3 py-2.5">
+            <div className="font-medium text-fg">{dup.name}</div>
+            <div className="text-xs text-muted break-all">{dup.url}</div>
+          </div>
+          {dup.alreadyMember && (
+            <div className="rounded-lg bg-up/15 text-up text-sm px-3 py-2">
+              You’re already a member of this monitor — it’s on your dashboard already.
+            </div>
+          )}
+          {error && <div className="bg-down/15 text-down text-sm rounded-lg px-3 py-2">{error}</div>}
+          <div className="flex flex-wrap justify-end gap-2 pt-1">
+            <Button type="button" variant="ghost" onClick={() => setDup(null)}>
+              Back
+            </Button>
+            {!dup.alreadyMember && (
+              <Button type="button" onClick={() => void joinExisting()} disabled={pending}>
+                {join.isPending ? "Joining…" : "Join this monitor"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </Modal>
+    );
   }
 
   return (

@@ -108,3 +108,14 @@ export interface Monitor {
   lastResponseTimeMs?: number;
   lastCheckedAt?: string;
 }
+
+/** Minimal monitor info returned by org-wide discover/search (for joining). */
+export interface DiscoverMonitor {
+  id: string;
+  name: string;
+  url: string;
+  type: Monitor["type"];
+  status: MonitorStatus;
+  memberCount: number;
+  alreadyMember: boolean;
+}

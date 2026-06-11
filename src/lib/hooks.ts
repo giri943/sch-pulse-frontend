@@ -4,11 +4,20 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./api-client";
 import type {
   DashboardStats,
+  DiscoverMonitor,
   IncidentRow,
   SslExpiringItem,
   StatusBoardItem,
   UptimeOverview,
 } from "./types";
+
+/** Org-wide monitor search for discover-and-join. Enabled only while the picker is open. */
+export const useDiscoverMonitors = (q: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ["monitors", "discover", q],
+    queryFn: () => apiFetch<{ data: DiscoverMonitor[] }>(`/monitors/discover?q=${encodeURIComponent(q)}`),
+    enabled,
+  });
 
 export const useDashboardStats = () =>
   useQuery({

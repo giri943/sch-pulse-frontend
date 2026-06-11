@@ -51,6 +51,14 @@ export function useRestoreMonitor() {
     onSuccess: invalidate,
   });
 }
+/** Join an existing monitor (added to its members → appears on your dashboard + alerts). */
+export function useJoinMonitor() {
+  const invalidate = useInvalidate([["monitors"], ["dashboard"]]);
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/monitors/${id}/join`, { method: "POST" }),
+    onSuccess: invalidate,
+  });
+}
 
 /* ── Notification channels ── */
 export interface ChannelBody {
