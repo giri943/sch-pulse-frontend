@@ -4,7 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
-import { useMe, can, PERM } from "@/lib/permissions";
+import { useMe, can, isSuperAdmin, PERM } from "@/lib/permissions";
 import type { Monitor, Paginated } from "@/lib/types";
 import { Button, PageHeader, Input, Select, Skeleton, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -34,9 +34,11 @@ function MonitorsInner() {
   });
 
   const canCreate = can(me, PERM.MONITOR_CREATE);
-  const canManage = !!me?.permissions.some(
-    (p) => p.startsWith("monitor:update") || p.startsWith("monitor:run") || p.startsWith("monitor:delete"),
-  );
+  const canManage =
+    isSuperAdmin(me) ||
+    !!me?.permissions.some(
+      (p) => p.startsWith("monitor:update") || p.startsWith("monitor:run") || p.startsWith("monitor:delete"),
+    );
 
   const monitors = useMemo(() => {
     let list = data?.data ?? [];

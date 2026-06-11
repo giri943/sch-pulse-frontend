@@ -40,7 +40,10 @@ function AccountPanel() {
           <Row label="Name" value={data.name} />
           <Row label="Email" value={data.email} />
           <Row label="Role" value={<Badge tone="brand">{data.role.name}</Badge>} />
-          <Row label="Permissions" value={`${data.permissions.length} granted`} />
+          <Row
+            label="Permissions"
+            value={data.permissions.includes("*") ? "Full access (Super Admin)" : `${data.permissions.length} granted`}
+          />
         </div>
       ) : (
         <p className="text-muted text-sm">Loading…</p>

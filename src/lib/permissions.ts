@@ -31,7 +31,15 @@ export function useMe() {
   });
 }
 
+/** Wildcard permission held only by Super Admin — grants everything. */
+export const WILDCARD = "*";
+
+export function isSuperAdmin(me: Me | undefined): boolean {
+  return !!me?.permissions.includes(WILDCARD);
+}
+
 export function can(me: Me | undefined, ...keys: string[]): boolean {
   if (!me) return false;
+  if (me.permissions.includes(WILDCARD)) return true;
   return keys.some((k) => me.permissions.includes(k));
 }

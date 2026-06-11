@@ -63,7 +63,9 @@ export function RolesPanel() {
                 </div>
                 <span className="text-xs text-muted">{r.userCount ?? 0} user(s)</span>
               </div>
-              <div className="text-xs text-muted mt-3">{r.permissions.length} permission(s)</div>
+              <div className="text-xs text-muted mt-3">
+                {r.permissions.includes("*") ? "All permissions" : `${r.permissions.length} permission(s)`}
+              </div>
               <div className="flex gap-1.5 mt-3">
                 <Button
                   variant="ghost"

@@ -73,7 +73,7 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
 
       {me && (
         <div className="pt-2 text-[11px] text-muted px-3">
-          {me.role.name} · {me.permissions.length} perms
+          {me.role.name} · {me.permissions.includes("*") ? "full access" : `${me.permissions.length} perms`}
         </div>
       )}
     </nav>
