@@ -154,8 +154,9 @@ export function useDeleteRole() {
 export function useTestNotification() {
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch<{ message: string; recipients: string[] }>(`/monitors/${id}/test-notification`, {
-        method: "POST",
-      }),
+      apiFetch<{ message: string; recipients: string[]; emailFailed?: boolean; emailError?: string }>(
+        `/monitors/${id}/test-notification`,
+        { method: "POST" },
+      ),
   });
 }

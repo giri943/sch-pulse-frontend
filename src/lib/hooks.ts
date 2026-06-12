@@ -30,6 +30,7 @@ export const useUptimeOverview = (range: "24h" | "7d" | "30d") =>
   useQuery({
     queryKey: ["dashboard", "uptime", range],
     queryFn: () => apiFetch<UptimeOverview>(`/dashboard/uptime?range=${range}`),
+    refetchInterval: 60_000,
   });
 
 export const useStatusBoard = () =>

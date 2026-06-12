@@ -48,7 +48,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
   const { data: summary } = useQuery({ queryKey: ["monitor", id, "summary"], queryFn: () => apiFetch<Summary>(`/monitors/${id}/summary`), refetchInterval: 20_000 });
   const { data: uptime } = useQuery({ queryKey: ["monitor", id, "uptime"], queryFn: () => apiFetch<UptimeSeries>(`/monitors/${id}/uptime?range=24h`), refetchInterval: 30_000 });
   const { data: checks } = useQuery({ queryKey: ["monitor", id, "checks"], queryFn: () => apiFetch<Paginated<Check>>(`/monitors/${id}/checks?limit=20`), refetchInterval: 15_000 });
-  const { data: incidents } = useQuery({ queryKey: ["monitor", id, "incidents"], queryFn: () => apiFetch<Paginated<IncidentRow>>(`/incidents?monitorId=${id}&limit=20`) });
+  const { data: incidents } = useQuery({ queryKey: ["monitor", id, "incidents"], queryFn: () => apiFetch<Paginated<IncidentRow>>(`/incidents?monitorId=${id}&limit=20`), refetchInterval: 30_000 });
 
   const memberUsers = (monitor?.members ?? []).filter((m) => typeof m === "object") as UserLite[];
   const recipients = [...memberUsers.map((u) => u.email), ...(monitor?.extraAlertEmails ?? [])];
@@ -59,7 +59,8 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
   async function runTest() {
     try {
       const res = await test.mutateAsync(id);
-      toast.success(res.message);
+      if (res.emailFailed) toast.error(res.message);
+      else toast.success(res.message);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send");
     }
