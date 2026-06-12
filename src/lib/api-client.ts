@@ -27,7 +27,7 @@ export class ApiError extends Error {
   }
 }
 
-async function refresh(): Promise<boolean> {
+async function doRefresh(): Promise<boolean> {
   try {
     const res = await fetch(`${API_URL}/auth/refresh`, { method: "POST", credentials: "include" });
     if (!res.ok) return false;
@@ -39,7 +39,28 @@ async function refresh(): Promise<boolean> {
   }
 }
 
-/** Typed fetch wrapper: attaches the access token and retries once on 401. */
+// Single-flight refresh: a burst of 401s (e.g. several polling queries firing at
+// once after the access token expires) all share ONE /auth/refresh request
+// instead of stampeding the endpoint.
+let refreshPromise: Promise<boolean> | null = null;
+function refresh(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+/** The session can't be refreshed (refresh token expired/revoked) → clear it and go to login. */
+function handleSessionExpired(): void {
+  setAccessToken(null);
+  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login";
+  }
+}
+
+/** Typed fetch wrapper: attaches the access token and silently refreshes once on 401. */
 export async function apiFetch<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
@@ -48,8 +69,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, retry = 
 
   const res = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: "include" });
 
-  if (res.status === 401 && retry) {
+  // Auto-refresh on 401 for protected endpoints. Auth endpoints (login/refresh/
+  // google) own their 401s — refreshing on those would loop or hide the real error.
+  if (res.status === 401 && retry && !path.startsWith("/auth/")) {
     if (await refresh()) return apiFetch<T>(path, init, false);
+    handleSessionExpired(); // refresh failed → session is genuinely over
   }
   if (res.status === 204) return undefined as T;
 
