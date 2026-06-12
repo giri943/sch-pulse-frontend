@@ -241,7 +241,13 @@ export function MonitorFormModal({
             >
               No expiry
             </button>
-            <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className="w-auto" />
+            <Input
+              type="date"
+              value={expiresAt}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="w-auto"
+            />
           </div>
         </Field>
         <div className="flex justify-end gap-2 pt-2">

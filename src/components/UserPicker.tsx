@@ -30,18 +30,20 @@ export function UserPicker({
     onChange([...value, u]);
     setQ("");
   }
-  function remove(id: string) {
-    onChange(value.filter((u) => u.id !== id));
+  // Remove by position so a single chip is removed even if two entries share an
+  // id (or an id is missing) — filtering by id would drop every match.
+  function remove(index: number) {
+    onChange(value.filter((_, i) => i !== index));
   }
 
   return (
     <div className="relative">
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
-          {value.map((u) => (
-            <span key={u.id} className="inline-flex items-center gap-1 bg-brand/15 text-fg rounded-full pl-2 pr-1 py-0.5 text-xs">
+          {value.map((u, i) => (
+            <span key={`${u.id}-${i}`} className="inline-flex items-center gap-1 bg-brand/15 text-fg rounded-full pl-2 pr-1 py-0.5 text-xs">
               {u.name}
-              <button type="button" onClick={() => remove(u.id)} className="text-muted hover:text-down px-1">
+              <button type="button" onClick={() => remove(i)} className="text-muted hover:text-down px-1">
                 ×
               </button>
             </span>
