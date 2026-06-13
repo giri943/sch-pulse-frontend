@@ -63,6 +63,12 @@ export function UserPicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Build marker — open the browser console to confirm the deployed bundle is
+  // current. If you don't see this line on Vercel, an old build is being served.
+  useEffect(() => {
+    console.info("[Schbang Pulse] UserPicker build: tagfix-v3 (index-based removal)");
+  }, []);
+
   // Debounce keystrokes before hitting the search API.
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(q.trim()), 250);
@@ -161,18 +167,21 @@ export function UserPicker({
       >
         {value.map((u, i) => (
           <span
-            key={`${u.id}-${i}`}
+            key={`tag-${i}`}
             className="inline-flex items-center gap-1 rounded-full bg-brand/15 py-0.5 pl-1 pr-1.5 text-xs text-fg"
           >
             <Avatar user={u} size={18} />
             {u.name}
             <button
               type="button"
-              onClick={(e) => {
+              onMouseDown={(e) => {
+                // mousedown + stopPropagation so neither the field's onClick nor a
+                // focus/blur cycle can interfere; remove strictly this chip's index.
+                e.preventDefault();
                 e.stopPropagation();
                 remove(i);
               }}
-              className="text-muted hover:text-down"
+              className="px-0.5 text-muted hover:text-down"
               aria-label={`Remove ${u.name}`}
             >
               ×
