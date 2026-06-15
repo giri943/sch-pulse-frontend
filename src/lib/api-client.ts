@@ -67,7 +67,26 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, retry = 
   const token = getAccessToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: "include" });
+  // Abort if the server doesn't respond in time so the UI never spins forever
+  // (e.g. a cold-starting/free-tier backend). Surfaces a clear, actionable error.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers,
+      credentials: "include",
+      signal: init.signal ?? controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new ApiError(0, "TIMEOUT", "The server took too long to respond — it may be waking up. Please try again.");
+    }
+    throw new ApiError(0, "NETWORK", "Can't reach the server. Check your connection and try again.");
+  } finally {
+    clearTimeout(timer);
+  }
 
   // Auto-refresh on 401 for protected endpoints. Auth endpoints (login/refresh/
   // google) own their 401s — refreshing on those would loop or hide the real error.
