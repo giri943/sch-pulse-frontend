@@ -18,7 +18,7 @@ interface UptimeSeries { series: { t: string; uptime: number | null; avgResponse
 interface Summary {
   status: string; down: boolean; stateSince: string | null; lastCheckedAt: string | null;
   monitoringSince?: string | null;
-  intervalSec?: number; sslExpiresAt: string | null;
+  intervalSec?: number; sslExpiresAt: string | null; domainExpiresAt?: string | null;
   uptime: { "24h": number | null; "7d": number | null; "30d": number | null };
   response: { avg: number | null; min: number | null; max: number | null; checks: number };
   totalIncidents: number;
@@ -218,6 +218,21 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
             ) : (
               <p className="text-sm text-muted">No SSL details available{monitor && !monitor.url.startsWith("https://") ? " (not an HTTPS URL)." : "."}</p>
             )}
+            <div className="mt-4 border-t border-border pt-3 text-sm space-y-1">
+              <div className="text-muted text-xs">Domain registration expires</div>
+              {summary?.domainExpiresAt ? (
+                <>
+                  <div className="text-lg font-semibold">🌐 {dateStr(summary.domainExpiresAt)}</div>
+                  {(() => {
+                    const days = Math.ceil((new Date(summary.domainExpiresAt).getTime() - Date.now()) / 86400000);
+                    const tone = days <= 7 ? "text-down" : days <= 15 ? "text-degraded" : "text-up";
+                    return <div className={`text-xs ${tone}`}>{days} days remaining</div>;
+                  })()}
+                </>
+              ) : (
+                <div className="text-xs text-muted">Checking… (updates within a day)</div>
+              )}
+            </div>
           </Card>
           <Card>
             <CardTitle>Configuration</CardTitle>
