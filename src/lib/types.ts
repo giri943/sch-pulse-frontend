@@ -10,7 +10,7 @@ export interface Paginated<T> {
 }
 
 export interface DashboardStats {
-  stats: { totalMonitors: number; monitorsDown: number; openIncidents: number; uptime30d: number };
+  stats: { totalMonitors: number; monitorsDown: number; openIncidents: number; uptime30d: number | null };
   generatedAt: string;
 }
 
@@ -76,6 +76,8 @@ export interface Me {
   name: string;
   email: string;
   avatarUrl?: string | null;
+  authProvider?: "local" | "google";
+  hasPassword?: boolean;
   role: { id: string; name: string };
   permissions: string[];
 }

@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { apiFetch, getAccessToken, setAccessToken } from "@/lib/api-client";
 import { SchbangLogo } from "@/components/SchbangLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SetPasswordGate } from "@/components/SetPasswordBanner";
 import { Icon } from "@/components/icons";
 import { useMe } from "@/lib/permissions";
 import { cn } from "@/lib/cn";
@@ -98,6 +99,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SchbangLogo fontSize={24} />
       </div>
     );
+  }
+
+  // Google users must set a password before using the dashboard.
+  if (me && me.authProvider === "google" && me.hasPassword === false) {
+    return <SetPasswordGate />;
   }
 
   async function logout() {

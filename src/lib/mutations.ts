@@ -160,3 +160,13 @@ export function useTestNotification() {
       ),
   });
 }
+
+/** Set/replace the current user's password (e.g. a Google user enabling email login). */
+export function useSetPassword() {
+  const invalidate = useInvalidate([["me"]]);
+  return useMutation({
+    mutationFn: (password: string) =>
+      apiFetch<{ message: string }>("/auth/set-password", { method: "POST", body: JSON.stringify({ password }) }),
+    onSuccess: invalidate,
+  });
+}

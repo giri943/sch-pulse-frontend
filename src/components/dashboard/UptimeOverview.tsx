@@ -17,8 +17,7 @@ export function UptimeOverview() {
   const series =
     data?.series.map((p) => ({
       t: new Date(p.t).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit" }),
-      uptime: p.uptime ?? 0,
-      ms: p.avgResponseMs ?? 0,
+      ms: p.avgResponseMs, // null = no data → rendered as a gap, not a 0 dip
     })) ?? [];
 
   return (
@@ -26,7 +25,9 @@ export function UptimeOverview() {
       <CardTitle
         right={
           <div className="flex items-center gap-3">
-            {stats && <span className="text-xs text-up font-medium">{stats.uptime30d}% · 30d</span>}
+            {stats?.uptime30d != null && (
+              <span className="text-xs text-up font-medium">{stats.uptime30d}% · 30d</span>
+            )}
             <div className="flex gap-0.5 bg-bg border border-border rounded-lg p-0.5">
               {RANGES.map((r) => (
                 <button
@@ -64,7 +65,7 @@ export function UptimeOverview() {
                 contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 10, fontSize: 12 }}
                 labelStyle={{ color: "rgb(var(--fg))" }}
               />
-              <Area type="monotone" dataKey="ms" name="avg ms" stroke="#6366f1" fill="url(#up-grad)" strokeWidth={2} />
+              <Area type="monotone" dataKey="ms" name="avg ms" stroke="#6366f1" fill="url(#up-grad)" strokeWidth={2} connectNulls={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>

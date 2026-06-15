@@ -17,6 +17,7 @@ interface Check { _id: string; up: boolean; statusCode?: number; responseTimeMs?
 interface UptimeSeries { series: { t: string; uptime: number | null; avgResponseMs: number | null }[] }
 interface Summary {
   status: string; down: boolean; stateSince: string | null; lastCheckedAt: string | null;
+  monitoringSince?: string | null;
   intervalSec?: number; sslExpiresAt: string | null;
   uptime: { "24h": number | null; "7d": number | null; "30d": number | null };
   response: { avg: number | null; min: number | null; max: number | null; checks: number };
@@ -52,7 +53,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
 
   const memberUsers = (monitor?.members ?? []).filter((m) => typeof m === "object") as UserLite[];
   const recipients = [...memberUsers.map((u) => u.email), ...(monitor?.extraAlertEmails ?? [])];
-  const chart = uptime?.series.map((p) => ({ t: new Date(p.t).toLocaleString([], { hour: "2-digit", day: "numeric", month: "short" }), ms: p.avgResponseMs ?? 0 })) ?? [];
+  const chart = uptime?.series.map((p) => ({ t: new Date(p.t).toLocaleString([], { hour: "2-digit", day: "numeric", month: "short" }), ms: p.avgResponseMs })) ?? [];
   const bars = uptime?.series.slice(-32) ?? [];
   const intervalMin = (summary?.intervalSec ?? monitor?.intervalSec ?? 0) / 60;
 
@@ -113,6 +114,14 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
         <MetricCard label="Incidents" value={summary?.totalIncidents ?? "—"} tone="neutral" />
       </div>
 
+      {summary?.monitoringSince && (
+        <p className="-mt-1 text-xs text-muted">
+          Monitoring since{" "}
+          {new Date(summary.monitoringSince).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}{" "}
+          · {sinceDuration(summary.monitoringSince)} of data so far.
+        </p>
+      )}
+
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
 
       {tab === "overview" && (
@@ -133,7 +142,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
                   <XAxis dataKey="t" tick={{ fill: "rgb(var(--muted))", fontSize: 11 }} minTickGap={48} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fill: "rgb(var(--muted))", fontSize: 11 }} width={44} unit="ms" tickLine={false} axisLine={false} />
                   <Tooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 10, fontSize: 12 }} labelStyle={{ color: "rgb(var(--fg))" }} />
-                  <Area type="monotone" dataKey="ms" stroke="#22c55e" fill="url(#rt)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="ms" stroke="#22c55e" fill="url(#rt)" strokeWidth={2} connectNulls={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
