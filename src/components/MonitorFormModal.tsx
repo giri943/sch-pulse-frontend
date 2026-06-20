@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCreateMonitor, useUpdateMonitor, useJoinMonitor, type MonitorBody } from "@/lib/mutations";
+import { useProjects } from "@/lib/hooks";
 import { ApiError } from "@/lib/api-client";
 import type { Monitor, UserLite } from "@/lib/types";
 import { Button, Field, Input, Modal, Select } from "@/components/ui";
@@ -42,16 +43,23 @@ export function MonitorFormModal({
   open,
   onClose,
   monitor,
+  lockProjectId,
 }: {
   open: boolean;
   onClose: () => void;
   monitor: Monitor | null;
+  /** When creating inside a project, pre-set the project and hide the selector. */
+  lockProjectId?: string;
 }) {
   const create = useCreateMonitor();
   const update = useUpdateMonitor();
   const join = useJoinMonitor();
 
+  const { data: projects } = useProjects();
   const [name, setName] = useState(monitor?.name ?? "");
+  const [projectId, setProjectId] = useState<string>(
+    monitor?.project?.id ?? monitor?.projectId ?? lockProjectId ?? "",
+  );
   const [type, setType] = useState<Monitor["type"]>(monitor?.type ?? "website");
   const [url, setUrl] = useState(monitor?.url ?? "");
   const [method, setMethod] = useState(monitor?.method ?? "GET");
@@ -66,9 +74,18 @@ export function MonitorFormModal({
   const [dup, setDup] = useState<{ id: string; name: string; url: string; alreadyMember: boolean } | null>(null);
   const pending = create.isPending || update.isPending || join.isPending;
 
+  // Default to the first project (General) when creating outside a project context.
+  useEffect(() => {
+    if (!projectId && !lockProjectId && projects?.length) setProjectId(projects[0].id);
+  }, [projects, projectId, lockProjectId]);
+
+  // Hide the picker when creating inside a project; show it when editing (to move projects).
+  const showProjectField = !lockProjectId || !!monitor;
+
   function buildBody(): MonitorBody {
     return {
       name,
+      projectId,
       type,
       url,
       method,
@@ -164,6 +181,18 @@ export function MonitorFormModal({
         <Field label="Monitor name">
           <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Britannia Website" />
         </Field>
+        {showProjectField && (
+          <Field label="Project" hint="Group this monitor under a project (e.g. Frontend, Backend).">
+            <Select value={projectId} onChange={(e) => setProjectId(e.target.value)} required>
+              {!projectId && <option value="">Select a project…</option>}
+              {(projects ?? []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Type">
             <Select value={type} onChange={(e) => setType(e.target.value as Monitor["type"])}>

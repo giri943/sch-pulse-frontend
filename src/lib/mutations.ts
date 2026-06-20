@@ -7,6 +7,7 @@ export interface MonitorBody {
   name: string;
   type: "website" | "api" | "ssl";
   url: string;
+  projectId?: string;
   method?: string;
   intervalSec?: number;
   expectedStatusCode?: number;
@@ -23,14 +24,14 @@ function useInvalidate(keys: string[][]) {
 }
 
 export function useCreateMonitor() {
-  const invalidate = useInvalidate([["monitors"], ["dashboard"]]);
+  const invalidate = useInvalidate([["monitors"], ["dashboard"], ["projects"]]);
   return useMutation({
     mutationFn: (body: MonitorBody) => apiFetch("/monitors", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: invalidate,
   });
 }
 export function useUpdateMonitor() {
-  const invalidate = useInvalidate([["monitors"], ["monitor"], ["dashboard"]]);
+  const invalidate = useInvalidate([["monitors"], ["monitor"], ["dashboard"], ["projects"]]);
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: Partial<MonitorBody> }) =>
       apiFetch(`/monitors/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
@@ -38,14 +39,14 @@ export function useUpdateMonitor() {
   });
 }
 export function useDeleteMonitor() {
-  const invalidate = useInvalidate([["monitors"], ["dashboard"]]);
+  const invalidate = useInvalidate([["monitors"], ["dashboard"], ["projects"]]);
   return useMutation({
     mutationFn: (id: string) => apiFetch(`/monitors/${id}`, { method: "DELETE" }),
     onSuccess: invalidate,
   });
 }
 export function useRestoreMonitor() {
-  const invalidate = useInvalidate([["monitors"], ["dashboard"]]);
+  const invalidate = useInvalidate([["monitors"], ["dashboard"], ["projects"]]);
   return useMutation({
     mutationFn: (id: string) => apiFetch(`/monitors/${id}/restore`, { method: "POST" }),
     onSuccess: invalidate,
@@ -53,7 +54,7 @@ export function useRestoreMonitor() {
 }
 /** Join an existing monitor (added to its members → appears on your dashboard + alerts). */
 export function useJoinMonitor() {
-  const invalidate = useInvalidate([["monitors"], ["dashboard"]]);
+  const invalidate = useInvalidate([["monitors"], ["dashboard"], ["projects"]]);
   return useMutation({
     mutationFn: (id: string) => apiFetch(`/monitors/${id}/join`, { method: "POST" }),
     onSuccess: invalidate,
@@ -96,7 +97,7 @@ export function useTestChannel() {
 }
 
 export function useMonitorAction() {
-  const invalidate = useInvalidate([["monitors"], ["monitor"], ["dashboard"]]);
+  const invalidate = useInvalidate([["monitors"], ["monitor"], ["dashboard"], ["projects"]]);
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: "run" | "pause" | "resume" }) =>
       apiFetch(`/monitors/${id}/${action}`, { method: "POST" }),
@@ -158,6 +159,34 @@ export function useTestNotification() {
         `/monitors/${id}/test-notification`,
         { method: "POST" },
       ),
+  });
+}
+
+/* ── Projects ── */
+export interface ProjectBody {
+  name: string;
+  description?: string;
+}
+export function useCreateProject() {
+  const invalidate = useInvalidate([["projects"]]);
+  return useMutation({
+    mutationFn: (body: ProjectBody) => apiFetch("/projects", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+export function useUpdateProject() {
+  const invalidate = useInvalidate([["projects"]]);
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Partial<ProjectBody> }) =>
+      apiFetch(`/projects/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+export function useDeleteProject() {
+  const invalidate = useInvalidate([["projects"], ["monitors"]]);
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/projects/${id}`, { method: "DELETE" }),
+    onSuccess: invalidate,
   });
 }
 

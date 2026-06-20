@@ -77,7 +77,12 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-6">
-      <Link href="/monitors" className="text-sm text-muted hover:text-fg">‹ Monitors</Link>
+      <Link
+        href={monitor?.project?.id ? `/projects/${monitor.project.id}` : "/projects"}
+        className="text-sm text-muted hover:text-fg"
+      >
+        ‹ {monitor?.project?.name ?? "Projects"}
+      </Link>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -99,7 +104,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
             <Button variant="ghost" size="sm" onClick={() => action.mutate({ id, action: monitor.enabled ? "pause" : "resume" })}>{monitor.enabled ? "Pause" : "Resume"}</Button>
             <Button variant="ghost" size="sm" onClick={() => action.mutate({ id, action: "run" }, { onSuccess: () => toast.success("Check scheduled") })}>Run now</Button>
             <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>Edit</Button>
-            <Button variant="danger" size="sm" onClick={() => { if (confirm(`Delete "${monitor.name}"?`)) { del.mutate(id); router.replace("/monitors"); } }}>Delete</Button>
+            <Button variant="danger" size="sm" onClick={() => { if (confirm(`Delete "${monitor.name}"?`)) { del.mutate(id); router.replace(monitor.project?.id ? `/projects/${monitor.project.id}` : "/projects"); } }}>Delete</Button>
           </div>
         )}
       </div>

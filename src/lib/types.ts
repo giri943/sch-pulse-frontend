@@ -82,6 +82,20 @@ export interface Me {
   permissions: string[];
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  isSystem: boolean;
+  monitorCount: number;
+  downCount: number;
+}
+
+export interface ProjectLite {
+  id: string;
+  name: string;
+}
+
 export interface ChannelLite {
   id: string;
   name: string;
@@ -97,6 +111,8 @@ export interface Monitor {
   name: string;
   type: "website" | "api" | "ssl";
   url: string;
+  projectId?: string | null;
+  project?: ProjectLite | null;
   method?: string;
   intervalSec?: number;
   expectedStatusCode?: number;

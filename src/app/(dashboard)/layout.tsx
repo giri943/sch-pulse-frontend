@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { apiFetch, getAccessToken, setAccessToken } from "@/lib/api-client";
 import { SchbangLogo } from "@/components/SchbangLogo";
@@ -13,22 +13,12 @@ import { cn } from "@/lib/cn";
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const type = searchParams.get("type");
   const { data: me } = useMe();
-  const [monOpen, setMonOpen] = useState(true);
 
-  const isMonitors = pathname.startsWith("/monitors");
   const link = (active: boolean) =>
     cn(
       "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
       active ? "bg-brand/15 text-fg font-medium" : "text-muted hover:text-fg hover:bg-surface-2",
-    );
-
-  const sub = (active: boolean) =>
-    cn(
-      "flex items-center gap-2 pl-10 pr-3 py-1.5 rounded-lg text-sm transition-colors",
-      active ? "text-fg font-medium" : "text-muted hover:text-fg hover:bg-surface-2",
     );
 
   return (
@@ -37,33 +27,13 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
         <Icon name="dashboard" /> Dashboard
       </Link>
 
-      <div>
-        <button
-          onClick={() => setMonOpen((v) => !v)}
-          className={cn(link(isMonitors && !type), "w-full justify-between")}
-        >
-          <span className="flex items-center gap-2.5">
-            <Icon name="activity" /> Monitoring
-          </span>
-          <Icon name="chevron" width={14} height={14} className={cn("transition-transform", monOpen ? "" : "-rotate-90")} />
-        </button>
-        {monOpen && (
-          <div className="mt-1 space-y-0.5">
-            <Link href="/monitors" onClick={onNavigate} className={sub(isMonitors && !type)}>
-              All monitors
-            </Link>
-            <Link href="/monitors?type=website" onClick={onNavigate} className={sub(type === "website")}>
-              <Icon name="globe" width={14} height={14} /> Websites
-            </Link>
-            <Link href="/monitors?type=api" onClick={onNavigate} className={sub(type === "api")}>
-              <Icon name="braces" width={14} height={14} /> APIs
-            </Link>
-            <Link href="/monitors?type=ssl" onClick={onNavigate} className={sub(type === "ssl")}>
-              <Icon name="shield" width={14} height={14} /> SSL
-            </Link>
-          </div>
-        )}
-      </div>
+      <Link
+        href="/projects"
+        onClick={onNavigate}
+        className={link(pathname.startsWith("/projects") || pathname.startsWith("/monitors"))}
+      >
+        <Icon name="activity" /> Projects
+      </Link>
 
       <Link href="/incidents" onClick={onNavigate} className={link(pathname.startsWith("/incidents"))}>
         <Icon name="alert" /> Incidents
