@@ -190,6 +190,62 @@ export function useDeleteProject() {
   });
 }
 
+/* ── Project membership & join requests ── */
+export function useRequestJoin() {
+  const invalidate = useInvalidate([["projects", "discover"], ["join-requests"]]);
+  return useMutation({
+    mutationFn: ({ id, message }: { id: string; message?: string }) =>
+      apiFetch(`/projects/${id}/join-requests`, { method: "POST", body: JSON.stringify({ message }) }),
+    onSuccess: invalidate,
+  });
+}
+export function useCancelJoinRequest() {
+  const invalidate = useInvalidate([["projects", "discover"], ["join-requests"]]);
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/projects/join-requests/${id}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
+}
+export function useAcceptRequest() {
+  const invalidate = useInvalidate([["projects"], ["join-requests"]]);
+  return useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) =>
+      apiFetch(`/projects/join-requests/${id}/accept`, { method: "POST", body: JSON.stringify({ role }) }),
+    onSuccess: invalidate,
+  });
+}
+export function useRejectRequest() {
+  const invalidate = useInvalidate([["projects"], ["join-requests"]]);
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/projects/join-requests/${id}/reject`, { method: "POST" }),
+    onSuccess: invalidate,
+  });
+}
+export function useAddProjectMember() {
+  const invalidate = useInvalidate([["projects"]]);
+  return useMutation({
+    mutationFn: ({ projectId, userId, role }: { projectId: string; userId: string; role: string }) =>
+      apiFetch(`/projects/${projectId}/members`, { method: "POST", body: JSON.stringify({ userId, role }) }),
+    onSuccess: invalidate,
+  });
+}
+export function useUpdateMemberRole() {
+  const invalidate = useInvalidate([["projects"]]);
+  return useMutation({
+    mutationFn: ({ projectId, userId, role }: { projectId: string; userId: string; role: string }) =>
+      apiFetch(`/projects/${projectId}/members/${userId}`, { method: "PATCH", body: JSON.stringify({ role }) }),
+    onSuccess: invalidate,
+  });
+}
+export function useRemoveMember() {
+  const invalidate = useInvalidate([["projects"]]);
+  return useMutation({
+    mutationFn: ({ projectId, userId }: { projectId: string; userId: string }) =>
+      apiFetch(`/projects/${projectId}/members/${userId}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
+}
+
 /** Set/replace the current user's password (e.g. a Google user enabling email login). */
 export function useSetPassword() {
   const invalidate = useInvalidate([["me"]]);

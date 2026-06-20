@@ -7,10 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 import { useProject } from "@/lib/hooks";
 import { useMe, can, isSuperAdmin, PERM } from "@/lib/permissions";
-import { PageHeader, Button, Input, Select, Skeleton, EmptyState, Card } from "@/components/ui";
+import { PageHeader, Button, Input, Select, Skeleton, EmptyState, Card, Tabs } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { MonitorCard } from "@/components/MonitorCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
+import { ProjectMembersPanel } from "@/components/ProjectMembersPanel";
 import { cn } from "@/lib/cn";
 import type { Monitor, Paginated } from "@/lib/types";
 
@@ -18,7 +19,9 @@ export default function ProjectDetailPage() {
   const id = String(useParams().id);
   const { data: me } = useMe();
   const { data: project } = useProject(id);
+  const isProjectOwner = project?.myRole === "owner" || project?.myRole === "super";
 
+  const [tab, setTab] = useState("monitors");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Monitor | null>(null);
   const [q, setQ] = useState("");
@@ -73,6 +76,16 @@ export default function ProjectDetailPage() {
         }
       />
 
+      <Tabs
+        tabs={[{ key: "monitors", label: "Monitors" }, { key: "members", label: "Members" }]}
+        active={tab}
+        onChange={setTab}
+      />
+
+      {tab === "members" && <ProjectMembersPanel projectId={id} canManage={isProjectOwner} />}
+
+      {tab === "monitors" && (
+      <>
       {/* Project KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
@@ -130,6 +143,8 @@ export default function ProjectDetailPage() {
             <MonitorCard key={m._id} monitor={m} canManage={canManage} onEdit={(mm) => { setEditing(mm); setOpen(true); }} />
           ))}
         </div>
+      )}
+      </>
       )}
 
       <MonitorFormModal

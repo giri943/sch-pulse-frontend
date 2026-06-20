@@ -5,13 +5,48 @@ import { apiFetch } from "./api-client";
 import type {
   DashboardStats,
   DiscoverMonitor,
+  DiscoverProject,
   IncidentRow,
+  MyJoinRequest,
   Paginated,
+  PendingRequest,
   Project,
+  ProjectMemberRow,
   SslExpiringItem,
   StatusBoardItem,
   UptimeOverview,
 } from "./types";
+
+/** Members of a project. */
+export const useProjectMembers = (id: string) =>
+  useQuery({
+    queryKey: ["projects", id, "members"],
+    queryFn: () => apiFetch<ProjectMemberRow[]>(`/projects/${id}/members`),
+    enabled: !!id,
+  });
+
+/** Pending join requests for a project (owner inbox). */
+export const useProjectRequests = (id: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ["projects", id, "requests"],
+    queryFn: () => apiFetch<PendingRequest[]>(`/projects/${id}/join-requests`),
+    enabled: enabled && !!id,
+  });
+
+/** The current user's own pending join requests. */
+export const useMyJoinRequests = () =>
+  useQuery({
+    queryKey: ["join-requests", "mine"],
+    queryFn: () => apiFetch<MyJoinRequest[]>("/projects/requests/mine"),
+  });
+
+/** Projects the current user can request to join. */
+export const useDiscoverProjects = (q: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ["projects", "discover", q],
+    queryFn: () => apiFetch<DiscoverProject[]>(`/projects/discover?q=${encodeURIComponent(q)}`),
+    enabled,
+  });
 
 /** All projects (capped) — for the monitor form's project selector. */
 export const useProjects = () =>

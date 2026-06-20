@@ -7,7 +7,7 @@ import { useDeleteProject } from "@/lib/mutations";
 import { useMe, can, PERM } from "@/lib/permissions";
 import { useToast } from "@/components/Toast";
 import { ProjectFormModal } from "@/components/ProjectFormModal";
-import { JoinMonitorModal } from "@/components/JoinMonitorModal";
+import { BrowseProjectsModal } from "@/components/BrowseProjectsModal";
 import { PageHeader, Button, Input, Skeleton, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import type { Project } from "@/lib/types";
@@ -29,7 +29,6 @@ export default function ProjectsPage() {
   const canCreate = can(me, PERM.PROJECT_CREATE);
   const canUpdate = can(me, PERM.PROJECT_UPDATE);
   const canDelete = can(me, PERM.PROJECT_DELETE);
-  const canJoin = can(me, PERM.MONITOR_CREATE);
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useProjectsInfinite(dq);
   const projects = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
@@ -56,11 +55,9 @@ export default function ProjectsPage() {
         subtitle="A group of monitors per project, client or service. Open one to manage its monitors."
         actions={
           <div className="flex items-center gap-2">
-            {canJoin && (
-              <Button variant="ghost" onClick={() => setJoinOpen(true)}>
-                <Icon name="search" width={15} height={15} /> Join a monitor
-              </Button>
-            )}
+            <Button variant="ghost" onClick={() => setJoinOpen(true)}>
+              <Icon name="search" width={15} height={15} /> Find a project to join
+            </Button>
             {canCreate && (
               <Button onClick={() => { setEditing(null); setOpen(true); }}>
                 <Icon name="plus" width={15} height={15} /> New Project
@@ -136,7 +133,7 @@ export default function ProjectsPage() {
       )}
 
       <ProjectFormModal key={editing?.id ?? "new"} open={open} onClose={() => setOpen(false)} project={editing} />
-      <JoinMonitorModal open={joinOpen} onClose={() => setJoinOpen(false)} />
+      <BrowseProjectsModal open={joinOpen} onClose={() => setJoinOpen(false)} />
     </div>
   );
 }

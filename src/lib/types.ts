@@ -82,6 +82,9 @@ export interface Me {
   permissions: string[];
 }
 
+export type ProjectRole = "owner" | "editor" | "viewer";
+export type EffectiveProjectRole = ProjectRole | "super" | null;
+
 export interface Project {
   id: string;
   name: string;
@@ -89,6 +92,33 @@ export interface Project {
   isSystem: boolean;
   monitorCount: number;
   downCount: number;
+  myRole?: EffectiveProjectRole; // only on GET /projects/:id
+}
+
+export interface ProjectMemberRow {
+  id: string;
+  role: ProjectRole;
+  user: UserLite;
+}
+
+export interface PendingRequest {
+  id: string;
+  message: string;
+  createdAt: string;
+  user: UserLite | null;
+}
+
+export interface MyJoinRequest {
+  id: string;
+  project: { id: string; name: string } | null;
+  createdAt: string;
+}
+
+export interface DiscoverProject {
+  id: string;
+  name: string;
+  description: string;
+  requested: boolean;
 }
 
 export interface ProjectLite {
