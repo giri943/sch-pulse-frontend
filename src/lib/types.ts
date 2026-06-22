@@ -155,6 +155,10 @@ export interface Monitor {
   status: MonitorStatus;
   lastResponseTimeMs?: number;
   lastCheckedAt?: string;
+  /** Last-24h hourly avg response times (for the card sparkline). */
+  spark?: number[];
+  /** Last-24h uptime percentage; null when there's no data yet. */
+  uptime24h?: number | null;
   /** WAF-aware classification of the latest check. */
   lastClassification?: Classification | null;
   /** Firewall detected in front of this target, if any. */

@@ -55,7 +55,10 @@ export default function ProjectDetailPage() {
       const needle = q.toLowerCase();
       list = list.filter((m) => m.name.toLowerCase().includes(needle) || m.url.toLowerCase().includes(needle));
     }
-    return [...list].sort((a, b) => a.name.localeCompare(b.name));
+    // Surface trouble first: down → degraded → operational → unknown → paused, then by name.
+    const rank = (m: Monitor) =>
+      !m.enabled ? 4 : ({ down: 0, degraded: 1, operational: 2 } as Record<string, number>)[m.status] ?? 3;
+    return [...list].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
   }, [all, type, status, q]);
 
   return (
@@ -89,12 +92,12 @@ export default function ProjectDetailPage() {
       {/* Project KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Monitors", value: kpis.total, tone: "text-fg" },
-          { label: "Operational", value: kpis.up, tone: "text-up" },
-          { label: "Down", value: kpis.down, tone: kpis.down ? "text-down" : "text-fg" },
-          { label: "Paused", value: kpis.paused, tone: "text-muted" },
+          { label: "Monitors", value: kpis.total, tone: "text-fg", alert: false },
+          { label: "Operational", value: kpis.up, tone: "text-up", alert: false },
+          { label: "Down", value: kpis.down, tone: kpis.down ? "text-down" : "text-fg", alert: kpis.down > 0 },
+          { label: "Paused", value: kpis.paused, tone: "text-muted", alert: false },
         ].map((k) => (
-          <Card key={k.label}>
+          <Card key={k.label} className={cn(k.alert && "border-down/40 bg-down/[0.04]")}>
             <div className="text-xs text-muted">{k.label}</div>
             <div className={cn("text-2xl font-semibold", k.tone)}>{k.value}</div>
           </Card>
