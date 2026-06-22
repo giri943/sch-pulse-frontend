@@ -143,3 +143,10 @@ html.theme-animating *::after {
   .pulse-beat, .pulse-glow, .ecg-trace, .skeleton::after,
   .intro-ecg, .intro-blip, .intro-word, .intro-beam, .intro-glow-pulse { animation: none; }
 }
+
+/* ── Project card: a bright blip sweeping along the ECG trace ─────────── */
+@keyframes card-ecg-sweep { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+.card-ecg-sweep { stroke-dasharray: 9 91; animation: card-ecg-sweep 3.2s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .card-ecg-sweep { animation: none; opacity: 0; }
+}

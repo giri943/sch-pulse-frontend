@@ -12,6 +12,7 @@ import { PageHeader, Button, Input, Skeleton, EmptyState } from "@/components/ui
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { initials, projectTint } from "@/lib/projectVisual";
+import { ProjectPulse } from "@/components/ProjectPulse";
 import type { Project } from "@/lib/types";
 
 export default function ProjectsPage() {
@@ -140,6 +141,8 @@ export default function ProjectsPage() {
                     </div>
                   )}
                 </div>
+                <ProjectPulse monitorCount={p.monitorCount} downCount={p.downCount} />
+
                 <Link href={`/projects/${p.id}`} className="flex items-center justify-between text-[13px]">
                   <span className="text-muted">{p.monitorCount} monitor{p.monitorCount === 1 ? "" : "s"}</span>
                   {p.downCount > 0 ? (
