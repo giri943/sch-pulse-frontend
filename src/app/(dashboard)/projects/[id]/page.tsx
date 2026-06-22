@@ -147,13 +147,9 @@ export default function ProjectDetailPage() {
       </>
       )}
 
-      <MonitorFormModal
-        key={editing?._id ?? "new"}
-        open={open}
-        onClose={() => setOpen(false)}
-        monitor={editing}
-        lockProjectId={id}
-      />
+      {open && (
+        <MonitorFormModal open onClose={() => setOpen(false)} monitor={editing} lockProjectId={id} />
+      )}
     </div>
   );
 }

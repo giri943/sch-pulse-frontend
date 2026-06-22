@@ -132,8 +132,8 @@ export default function ProjectsPage() {
         </>
       )}
 
-      <ProjectFormModal key={editing?.id ?? "new"} open={open} onClose={() => setOpen(false)} project={editing} />
-      <BrowseProjectsModal open={joinOpen} onClose={() => setJoinOpen(false)} />
+      {open && <ProjectFormModal open onClose={() => setOpen(false)} project={editing} />}
+      {joinOpen && <BrowseProjectsModal open onClose={() => setJoinOpen(false)} />}
     </div>
   );
 }
