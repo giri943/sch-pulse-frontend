@@ -62,6 +62,7 @@ const paths: Record<string, ReactElement> = {
       <line x1="5" y1="12" x2="19" y2="12" />
     </>
   ),
+  check: <polyline points="20 6 9 17 4 12" />,
   pencil: (
     <>
       <path d="M12 20h9" />

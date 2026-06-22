@@ -31,7 +31,10 @@ export interface StatusBoardItem {
   name: string;
   url: string;
   status: MonitorStatus;
+  enabled?: boolean;
   lastResponseTimeMs: number | null;
+  /** Last-24h hourly avg response times (for the row sparkline). */
+  spark?: number[];
 }
 
 export interface SslExpiringItem {

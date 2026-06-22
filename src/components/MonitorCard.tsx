@@ -9,17 +9,10 @@ import { Icon } from "@/components/icons";
 import { WafBadge } from "@/components/WafNotice";
 import { MonitorSparkline } from "@/components/MonitorSparkline";
 import { initials, projectTint } from "@/lib/projectVisual";
+import { statusColor } from "@/lib/status";
 import { cn } from "@/lib/cn";
 
 const TYPE_ICON = { website: "globe", api: "braces", ssl: "shield" } as const;
-
-const STATUS_VAR: Record<string, string> = {
-  operational: "--up",
-  degraded: "--degraded",
-  down: "--down",
-  paused: "--muted",
-  unknown: "--muted",
-};
 
 function ago(iso?: string): string {
   if (!iso) return "never";
@@ -43,11 +36,8 @@ export function MonitorCard({
   const del = useDeleteMonitor();
   const toast = useToast();
 
-  const effStatus = !m.enabled ? "paused" : m.status;
   const isTrouble = m.enabled && (m.status === "down" || m.status === "degraded");
-  const cssVar = STATUS_VAR[effStatus] ?? STATUS_VAR.unknown;
-  const color = `rgb(var(${cssVar}))`;
-  const glow = `rgb(var(${cssVar}) / 0.16)`;
+  const { color, glow } = statusColor(m.status, m.enabled);
   const tint = projectTint(m.name);
 
   const lat = m.lastResponseTimeMs;
@@ -71,11 +61,11 @@ export function MonitorCard({
           {initials(m.name)}
         </div>
         <Link href={`/monitors/${m._id}`} className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: color, boxShadow: `0 0 0 3px ${glow}` }} />
-            <span className="truncate font-semibold tracking-[-0.01em] group-hover:text-brand">{m.name}</span>
+          <div className="flex items-start gap-2">
+            <span className="mt-[5px] h-1.5 w-1.5 flex-none rounded-full" style={{ background: color, boxShadow: `0 0 0 3px ${glow}` }} />
+            <span className="line-clamp-2 break-words font-semibold tracking-[-0.01em] group-hover:text-brand" title={m.name}>{m.name}</span>
           </div>
-          <div className="mt-0.5 truncate text-[11px] text-muted">{m.url}</div>
+          <div className="mt-0.5 truncate text-[11px] text-muted" title={m.url}>{m.url}</div>
         </Link>
         <div className="flex flex-none flex-col items-end gap-1">
           <Badge tone="neutral">
