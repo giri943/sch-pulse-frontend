@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getAccessToken, setAccessToken } from "@/lib/api-client";
 import { SchbangLogo } from "@/components/SchbangLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -53,6 +54,7 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: me } = useMe();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [ready, setReady] = useState(false);
@@ -79,6 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   async function logout() {
     await apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
     setAccessToken(null);
+    queryClient.clear(); // don't leak this user's data to the next login
     router.replace("/login");
   }
 

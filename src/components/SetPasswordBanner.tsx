@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSetPassword } from "@/lib/mutations";
 import { apiFetch, setAccessToken } from "@/lib/api-client";
 import { Button, Field, Input } from "@/components/ui";
@@ -13,6 +14,7 @@ import { SchbangLogo } from "@/components/SchbangLogo";
  */
 export function SetPasswordGate() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const setPassword = useSetPassword();
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -35,6 +37,7 @@ export function SetPasswordGate() {
   async function signOut() {
     await apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
     setAccessToken(null);
+    queryClient.clear();
     router.replace("/login");
   }
 

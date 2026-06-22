@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, setAccessToken } from "@/lib/api-client";
 import { SchbangLogo } from "@/components/SchbangLogo";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
@@ -11,6 +12,7 @@ import { Button, Field, Input } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -24,6 +26,7 @@ export default function LoginPage() {
     try {
       const res = await apiFetch<{ accessToken: string }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
       setAccessToken(res.accessToken);
+      queryClient.clear(); // drop any cached data from a previous account
       router.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -38,12 +41,13 @@ export default function LoginPage() {
       try {
         const res = await apiFetch<{ accessToken: string }>("/auth/google", { method: "POST", body: JSON.stringify({ idToken }) });
         setAccessToken(res.accessToken);
+        queryClient.clear(); // drop any cached data from a previous account
         router.replace("/");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Google sign-in failed");
       }
     },
-    [router],
+    [router, queryClient],
   );
 
   return (

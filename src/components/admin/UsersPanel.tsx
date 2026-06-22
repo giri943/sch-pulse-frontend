@@ -25,11 +25,17 @@ export function UsersPanel() {
   const [open, setOpen] = useState(false);
   const update = useUpdateUser();
   const canManage = can(me, PERM.USER_UPDATE);
+  const canSeeRoles = can(me, PERM.ROLE_READ);
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => apiFetch<{ data: UserRow[] }>("/users?limit=100"),
   });
-  const { data: roles } = useQuery({ queryKey: ["roles"], queryFn: () => apiFetch<RoleLite[]>("/roles") });
+  // Only fetch roles if allowed to see them (avoids a 403 and hides the column).
+  const { data: roles } = useQuery({
+    queryKey: ["roles"],
+    queryFn: () => apiFetch<RoleLite[]>("/roles"),
+    enabled: canSeeRoles,
+  });
 
   return (
     <Card>
@@ -50,7 +56,7 @@ export function UsersPanel() {
               <th className="py-2">Name</th>
               <th>Email</th>
               <th>Auth</th>
-              <th>Role</th>
+              {canSeeRoles && <th>Role</th>}
               <th>Status</th>
             </tr>
           </thead>
@@ -60,20 +66,22 @@ export function UsersPanel() {
                 <td className="py-2.5">{u.name}</td>
                 <td className="text-muted">{u.email}</td>
                 <td className="text-muted">{u.authProvider}</td>
-                <td>
-                  <Select
-                    value={u.role?.id ?? ""}
-                    disabled={!canManage}
-                    onChange={(e) => update.mutate({ id: u.id, body: { roleId: e.target.value } })}
-                    className="max-w-[160px]"
-                  >
-                    {roles?.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </Select>
-                </td>
+                {canSeeRoles && (
+                  <td>
+                    <Select
+                      value={u.role?.id ?? ""}
+                      disabled={!canManage}
+                      onChange={(e) => update.mutate({ id: u.id, body: { roleId: e.target.value } })}
+                      className="max-w-[160px]"
+                    >
+                      {roles?.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </td>
+                )}
                 <td>
                   <button
                     disabled={!canManage}

@@ -10,7 +10,19 @@ interface MonitorRow {
   name: string;
   url: string;
   type: "website" | "api" | "ssl";
+  expectedStatusCode: string;
 }
+
+const newRow = (): MonitorRow => ({ name: "", url: "", type: "website", expectedStatusCode: "200" });
+
+/** Common HTTP status codes for the expected-status datalist (typeahead). */
+const STATUS_CODES: [string, string][] = [
+  ["200", "OK"], ["201", "Created"], ["202", "Accepted"], ["204", "No Content"],
+  ["301", "Moved Permanently"], ["302", "Found"], ["304", "Not Modified"], ["307", "Temporary Redirect"], ["308", "Permanent Redirect"],
+  ["400", "Bad Request"], ["401", "Unauthorized"], ["403", "Forbidden"], ["404", "Not Found"], ["405", "Method Not Allowed"],
+  ["409", "Conflict"], ["410", "Gone"], ["422", "Unprocessable Entity"], ["429", "Too Many Requests"],
+  ["500", "Internal Server Error"], ["502", "Bad Gateway"], ["503", "Service Unavailable"], ["504", "Gateway Timeout"],
+];
 
 function hostOf(url: string): string {
   try {
@@ -38,13 +50,13 @@ export function ProjectFormModal({
 
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
-  const [rows, setRows] = useState<MonitorRow[]>([{ name: "", url: "", type: "website" }]);
+  const [rows, setRows] = useState<MonitorRow[]>([newRow()]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const setRow = (i: number, patch: Partial<MonitorRow>) =>
     setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
-  const addRow = () => setRows((rs) => [...rs, { name: "", url: "", type: "website" }]);
+  const addRow = () => setRows((rs) => [...rs, newRow()]);
   const removeRow = (i: number) => setRows((rs) => rs.filter((_, idx) => idx !== i));
 
   async function submit(e: React.FormEvent) {
@@ -79,7 +91,7 @@ export function ProjectFormModal({
             projectId: proj.id,
             method: "GET",
             intervalSec: 60,
-            expectedStatusCode: 200,
+            expectedStatusCode: Number(r.expectedStatusCode) || 200,
           });
           added += 1;
         } catch {
@@ -115,9 +127,14 @@ export function ProjectFormModal({
               <span className="text-sm font-medium">Add monitors (optional)</span>
               <span className="text-[11px] text-muted">You can configure each in detail later.</span>
             </div>
+            <datalist id="http-status-codes">
+              {STATUS_CODES.map(([code, label]) => (
+                <option key={code} value={code}>{`${code} ${label}`}</option>
+              ))}
+            </datalist>
             <div className="space-y-2">
               {rows.map((r, i) => (
-                <div key={i} className="grid grid-cols-[1fr_1.4fr_auto_auto] items-center gap-2">
+                <div key={i} className="grid grid-cols-[1fr_1.3fr_auto_5.5rem_auto] items-center gap-2">
                   <Input value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder="Name (optional)" />
                   <Input value={r.url} onChange={(e) => setRow(i, { url: e.target.value })} placeholder="https://example.com" />
                   <Select value={r.type} onChange={(e) => setRow(i, { type: e.target.value as MonitorRow["type"] })} className="w-auto">
@@ -125,6 +142,14 @@ export function ProjectFormModal({
                     <option value="api">API</option>
                     <option value="ssl">SSL</option>
                   </Select>
+                  <Input
+                    list="http-status-codes"
+                    inputMode="numeric"
+                    value={r.expectedStatusCode}
+                    onChange={(e) => setRow(i, { expectedStatusCode: e.target.value })}
+                    placeholder="200"
+                    title="Expected status code"
+                  />
                   <button
                     type="button"
                     onClick={() => removeRow(i)}
