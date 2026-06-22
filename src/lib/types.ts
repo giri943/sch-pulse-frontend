@@ -155,7 +155,25 @@ export interface Monitor {
   status: MonitorStatus;
   lastResponseTimeMs?: number;
   lastCheckedAt?: string;
+  /** WAF-aware classification of the latest check. */
+  lastClassification?: Classification | null;
+  /** Firewall detected in front of this target, if any. */
+  waf?: WafVendor | null;
+  wafDetectedAt?: string | null;
 }
+
+export type Classification =
+  | "up"
+  | "up_blocked"
+  | "up_challenged"
+  | "content_mismatch"
+  | "down_origin"
+  | "down_network"
+  | "dns_failed"
+  | "tls_failed"
+  | "timeout";
+
+export type WafVendor = "cloudflare" | "akamai" | "f5-bigip" | "imperva" | "aws-waf" | "sucuri";
 
 /** Minimal monitor info returned by org-wide discover/search (for joining). */
 export interface DiscoverMonitor {

@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast";
 import type { Monitor } from "@/lib/types";
 import { StatusDot, Badge, Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { WafBadge } from "@/components/WafNotice";
 
 const TYPE_ICON = { website: "globe", api: "braces", ssl: "shield" } as const;
 
@@ -41,10 +42,13 @@ export function MonitorCard({
             <div className="text-[11px] text-muted truncate">{m.url}</div>
           </div>
         </Link>
-        <Badge tone="neutral">
-          <Icon name={TYPE_ICON[m.type]} width={11} height={11} className="mr-1" />
-          {m.type}
-        </Badge>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Badge tone="neutral">
+            <Icon name={TYPE_ICON[m.type]} width={11} height={11} className="mr-1" />
+            {m.type}
+          </Badge>
+          <WafBadge monitor={m} />
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mt-4 text-center">

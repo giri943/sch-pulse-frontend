@@ -12,6 +12,7 @@ import type { Monitor, Paginated, IncidentRow, UserLite } from "@/lib/types";
 import { Button, Card, CardTitle, StatusDot, StatusBadge, Tabs, Skeleton, EmptyState, Badge } from "@/components/ui";
 import { MetricCard } from "@/components/MetricCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
+import { WafNotice } from "@/components/WafNotice";
 
 interface Check { _id: string; up: boolean; statusCode?: number; responseTimeMs?: number; error?: string | null; checkedAt: string }
 interface UptimeSeries { series: { t: string; uptime: number | null; avgResponseMs: number | null }[] }
@@ -126,6 +127,8 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
           · {sinceDuration(summary.monitoringSince)} of data so far.
         </p>
       )}
+
+      {monitor && <WafNotice monitor={monitor} />}
 
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
 
