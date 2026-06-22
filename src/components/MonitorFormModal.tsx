@@ -87,7 +87,8 @@ export function MonitorFormModal({
       name,
       projectId,
       type,
-      url,
+      // Default to https:// when the scheme is omitted (e.g. "www.google.com").
+      url: /^https?:\/\//i.test(url.trim()) || !url.trim() ? url.trim() : `https://${url.trim()}`,
       method,
       intervalSec,
       expectedStatusCode,
@@ -210,7 +211,7 @@ export function MonitorFormModal({
           </Field>
         </div>
         <Field label="URL">
-          <Input type="url" value={url} onChange={(e) => setUrl(e.target.value)} required placeholder="https://britannia.co.in" />
+          <Input type="text" value={url} onChange={(e) => setUrl(e.target.value)} required placeholder="britannia.co.in (https:// added if omitted)" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Interval">

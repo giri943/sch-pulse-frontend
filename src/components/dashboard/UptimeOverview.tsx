@@ -52,7 +52,7 @@ export function UptimeOverview() {
       ) : (
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={series} margin={{ left: -8, right: 4, top: 4 }}>
+            <AreaChart data={series} margin={{ left: 4, right: 4, top: 4 }}>
               <defs>
                 <linearGradient id="up-grad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#6366f1" stopOpacity={0.45} />
@@ -60,7 +60,7 @@ export function UptimeOverview() {
                 </linearGradient>
               </defs>
               <XAxis dataKey="t" tick={{ fill: "rgb(var(--muted))", fontSize: 11 }} minTickGap={48} tickLine={false} axisLine={false} />
-              <YAxis dataKey="ms" tick={{ fill: "rgb(var(--muted))", fontSize: 11 }} width={44} tickLine={false} axisLine={false} unit="ms" />
+              <YAxis dataKey="ms" tick={{ fill: "rgb(var(--muted))", fontSize: 11 }} width={64} tickLine={false} axisLine={false} unit="ms" />
               <Tooltip
                 contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 10, fontSize: 12 }}
                 labelStyle={{ color: "rgb(var(--fg))" }}

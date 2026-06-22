@@ -137,7 +137,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
             </CardTitle>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chart} margin={{ left: -8, right: 4, top: 4 }}>
+                <AreaChart data={chart} margin={{ left: 4, right: 4, top: 4 }}>
                   <defs>
                     <linearGradient id="rt" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
@@ -145,7 +145,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="t" tick={{ fill: "rgb(var(--muted))", fontSize: 11 }} minTickGap={48} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fill: "rgb(var(--muted))", fontSize: 11 }} width={44} unit="ms" tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: "rgb(var(--muted))", fontSize: 11 }} width={64} unit="ms" tickLine={false} axisLine={false} />
                   <Tooltip contentStyle={{ background: "rgb(var(--surface))", border: "1px solid rgb(var(--border))", borderRadius: 10, fontSize: 12 }} labelStyle={{ color: "rgb(var(--fg))" }} />
                   <Area type="monotone" dataKey="ms" stroke="#22c55e" fill="url(#rt)" strokeWidth={2} connectNulls={false} />
                 </AreaChart>

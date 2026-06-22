@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCreateProject, useUpdateProject, useCreateMonitor } from "@/lib/mutations";
+import { ApiError } from "@/lib/api-client";
 import { useToast } from "@/components/Toast";
 import type { Project } from "@/lib/types";
 import { Button, Field, Input, Modal, Select } from "@/components/ui";
@@ -23,6 +24,13 @@ const STATUS_CODES: [string, string][] = [
   ["409", "Conflict"], ["410", "Gone"], ["422", "Unprocessable Entity"], ["429", "Too Many Requests"],
   ["500", "Internal Server Error"], ["502", "Bad Gateway"], ["503", "Service Unavailable"], ["504", "Gateway Timeout"],
 ];
+
+/** Default to https:// when the user omits the scheme (e.g. "www.google.com"). */
+function withScheme(u: string): string {
+  const t = u.trim();
+  if (!t) return t;
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+}
 
 function hostOf(url: string): string {
   try {
@@ -81,12 +89,14 @@ export function ProjectFormModal({
       const proj = (await create.mutateAsync({ name, description })) as { id: string };
       const toAdd = rows.filter((r) => r.url.trim());
       let added = 0;
-      const skipped: string[] = [];
+      let duplicates = 0;
+      let failed = 0;
       for (const r of toAdd) {
+        const url = withScheme(r.url);
         try {
           await createMonitor.mutateAsync({
-            name: r.name.trim() || hostOf(r.url.trim()),
-            url: r.url.trim(),
+            name: r.name.trim() || hostOf(url),
+            url,
             type: r.type,
             projectId: proj.id,
             method: "GET",
@@ -94,14 +104,17 @@ export function ProjectFormModal({
             expectedStatusCode: Number(r.expectedStatusCode) || 200,
           });
           added += 1;
-        } catch {
-          skipped.push(r.url.trim());
+        } catch (err) {
+          if (err instanceof ApiError && err.code === "DUPLICATE_MONITOR") duplicates += 1;
+          else failed += 1;
         }
       }
-      toast.success(
-        `Project created${added ? ` with ${added} monitor${added === 1 ? "" : "s"}` : ""}` +
-          (skipped.length ? ` · ${skipped.length} skipped (invalid or already exists)` : ""),
-      );
+      const parts = [`Project created`];
+      if (added) parts.push(`with ${added} monitor${added === 1 ? "" : "s"}`);
+      const notes: string[] = [];
+      if (duplicates) notes.push(`${duplicates} already existed`);
+      if (failed) notes.push(`${failed} had an invalid URL`);
+      toast.success(parts.join(" ") + (notes.length ? ` · ${notes.join(", ")}` : ""));
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");
