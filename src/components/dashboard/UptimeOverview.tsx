@@ -91,7 +91,11 @@ export function UptimeOverview() {
         <div className="grid h-56 place-items-center text-sm text-muted">No data for this period yet.</div>
       ) : metric === "uptime" ? (
         <div className="h-56">
-          <div className="flex h-44 items-stretch gap-[2px]">
+          <div
+            className="flex h-44 items-stretch gap-[2px]"
+            role="img"
+            aria-label={`Uptime over ${range}: ${rangeUptime == null ? "no data" : `${rangeUptime}%`}`}
+          >
             {bars.map((b, i) => {
               const c = barColor(b.uptime);
               return (

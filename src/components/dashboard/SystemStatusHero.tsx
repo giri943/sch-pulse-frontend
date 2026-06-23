@@ -41,6 +41,15 @@ export function SystemStatusHero() {
   const domainCount = domain?.length ?? 0;
   const uptime30d = dash?.stats.uptime30d ?? null;
 
+  // Tone the expiry chips by the SOONEST item, not merely by count — a domain
+  // 50 days out shouldn't paint the hero red.
+  const soonestDays = (arr?: { daysRemaining: number | null }[]) => {
+    const ds = (arr ?? []).map((x) => x.daysRemaining).filter((d): d is number => d != null);
+    return ds.length ? Math.min(...ds) : null;
+  };
+  const expiryTone = (d: number | null): "down" | "degraded" | undefined =>
+    d == null ? undefined : d <= 7 ? "down" : d <= 30 ? "degraded" : undefined;
+
   const tone: Tone =
     total === 0
       ? "neutral"
@@ -114,8 +123,8 @@ export function SystemStatusHero() {
             <Link href="/incidents" className="rounded-lg transition-transform hover:-translate-y-0.5">
               <Chip label="Active incidents" value={incidents} tone={incidents > 0 ? "down" : undefined} />
             </Link>
-            <Chip label="Domain expiring" value={domainCount} tone={domainCount > 0 ? "down" : undefined} />
-            <Chip label="SSL expiring" value={sslCount} tone={sslCount > 0 ? "degraded" : undefined} />
+            <Chip label="Domain expiring" value={domainCount} tone={expiryTone(soonestDays(domain))} />
+            <Chip label="SSL expiring" value={sslCount} tone={expiryTone(soonestDays(ssl))} />
           </div>
         </div>
       </div>
