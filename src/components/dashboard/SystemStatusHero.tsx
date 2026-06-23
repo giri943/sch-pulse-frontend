@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useStatusBoard, useDashboardStats, useSslExpiring } from "@/lib/hooks";
+import { useStatusBoard, useDashboardStats, useSslExpiring, useDomainExpiring } from "@/lib/hooks";
 import { Skeleton } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
@@ -24,6 +24,7 @@ export function SystemStatusHero() {
   const { data: board, isLoading } = useStatusBoard();
   const { data: dash } = useDashboardStats();
   const { data: ssl } = useSslExpiring();
+  const { data: domain } = useDomainExpiring();
 
   if (isLoading || !board) return <Skeleton className="h-40 rounded-2xl" />;
 
@@ -37,6 +38,7 @@ export function SystemStatusHero() {
   const total = board.length;
   const incidents = dash?.stats.openIncidents ?? 0;
   const sslCount = ssl?.length ?? 0;
+  const domainCount = domain?.length ?? 0;
   const uptime30d = dash?.stats.uptime30d ?? null;
 
   const tone: Tone =
@@ -112,6 +114,7 @@ export function SystemStatusHero() {
             <Link href="/incidents" className="rounded-lg transition-transform hover:-translate-y-0.5">
               <Chip label="Active incidents" value={incidents} tone={incidents > 0 ? "down" : undefined} />
             </Link>
+            <Chip label="Domain expiring" value={domainCount} tone={domainCount > 0 ? "down" : undefined} />
             <Chip label="SSL expiring" value={sslCount} tone={sslCount > 0 ? "degraded" : undefined} />
           </div>
         </div>

@@ -4,7 +4,7 @@ import { SystemStatusHero } from "@/components/dashboard/SystemStatusHero";
 import { UptimeOverview } from "@/components/dashboard/UptimeOverview";
 import { StatusGrid } from "@/components/dashboard/StatusGrid";
 import { RecentIncidents } from "@/components/dashboard/RecentIncidents";
-import { SslExpiry } from "@/components/dashboard/SslExpiry";
+import { Renewals } from "@/components/dashboard/Renewals";
 
 export default function OverviewPage() {
   return (
@@ -14,7 +14,7 @@ export default function OverviewPage() {
         <div className="lg:col-span-2">
           <UptimeOverview />
         </div>
-        <SslExpiry />
+        <Renewals />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <StatusGrid />

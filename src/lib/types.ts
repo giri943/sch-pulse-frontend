@@ -18,6 +18,8 @@ export interface UptimePoint {
   t: string;
   uptime: number | null;
   avgResponseMs: number | null;
+  ups?: number;
+  count?: number;
 }
 export interface UptimeOverview {
   range: string;
@@ -42,6 +44,14 @@ export interface SslExpiringItem {
   name: string;
   url: string;
   sslExpiresAt: string | null;
+  daysRemaining: number | null;
+}
+
+export interface DomainExpiringItem {
+  monitorId: string;
+  name: string;
+  url: string;
+  domainExpiresAt: string | null;
   daysRemaining: number | null;
 }
 
