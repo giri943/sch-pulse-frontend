@@ -4,6 +4,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./api-client";
 import type {
   DashboardStats,
+  DomainExpiringItem,
   DiscoverMonitor,
   DiscoverProject,
   IncidentRow,
@@ -115,4 +116,10 @@ export const useSslExpiring = () =>
   useQuery({
     queryKey: ["dashboard", "ssl"],
     queryFn: () => apiFetch<SslExpiringItem[]>("/dashboard/ssl-expiring"),
+  });
+
+export const useDomainExpiring = () =>
+  useQuery({
+    queryKey: ["dashboard", "domain"],
+    queryFn: () => apiFetch<DomainExpiringItem[]>("/dashboard/domain-expiring"),
   });

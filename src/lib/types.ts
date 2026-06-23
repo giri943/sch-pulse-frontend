@@ -18,6 +18,8 @@ export interface UptimePoint {
   t: string;
   uptime: number | null;
   avgResponseMs: number | null;
+  ups?: number;
+  count?: number;
 }
 export interface UptimeOverview {
   range: string;
@@ -30,15 +32,29 @@ export interface StatusBoardItem {
   monitorId: string;
   name: string;
   url: string;
+  project?: string | null;
   status: MonitorStatus;
+  enabled?: boolean;
   lastResponseTimeMs: number | null;
+  /** Last-24h hourly avg response times (for the row sparkline). */
+  spark?: number[];
 }
 
 export interface SslExpiringItem {
   monitorId: string;
   name: string;
   url: string;
+  project?: string | null;
   sslExpiresAt: string | null;
+  daysRemaining: number | null;
+}
+
+export interface DomainExpiringItem {
+  monitorId: string;
+  name: string;
+  url: string;
+  project?: string | null;
+  domainExpiresAt: string | null;
   daysRemaining: number | null;
 }
 
@@ -47,7 +63,7 @@ export interface IncidentRow {
   status: "open" | "resolved";
   startedAt: string;
   durationSec: number | null;
-  monitorId?: { name?: string; url?: string };
+  monitorId?: { name?: string; url?: string; projectId?: { name?: string } | null };
 }
 
 export interface UserLite {
@@ -155,6 +171,10 @@ export interface Monitor {
   status: MonitorStatus;
   lastResponseTimeMs?: number;
   lastCheckedAt?: string;
+  /** Last-24h hourly avg response times (for the card sparkline). */
+  spark?: number[];
+  /** Last-24h uptime percentage; null when there's no data yet. */
+  uptime24h?: number | null;
   /** WAF-aware classification of the latest check. */
   lastClassification?: Classification | null;
   /** Firewall detected in front of this target, if any. */
