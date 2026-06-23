@@ -55,7 +55,10 @@ export default function IncidentsPage() {
                     </Link>
                     <StatusBadge status={i.status} />
                   </div>
-                  <div className="text-[11px] text-muted truncate">{i.monitorId?.url ?? ""} · started {new Date(i.startedAt).toLocaleString()}</div>
+                  <div className="text-[11px] text-muted truncate">
+                    {i.monitorId?.projectId?.name && <span className="text-fg/65">{i.monitorId.projectId.name} · </span>}
+                    {i.monitorId?.url ?? ""} · started {new Date(i.startedAt).toLocaleString()}
+                  </div>
                 </div>
                 <span className="text-sm text-muted shrink-0">{duration(i.durationSec)}</span>
               </li>
