@@ -33,7 +33,8 @@ export function RecentIncidents() {
               </span>
               <div className="flex-1 min-w-0">
                 <div className="text-sm truncate">{i.monitorId?.name ?? "Monitor"}</div>
-                <div className="text-[11px] text-muted">
+                <div className="truncate text-[11px] text-muted">
+                  {i.monitorId?.projectId?.name && <span className="text-fg/65">{i.monitorId.projectId.name} · </span>}
                   {i.status === "open" ? "Down" : "Recovered"} · {new Date(i.startedAt).toLocaleString()}
                 </div>
               </div>

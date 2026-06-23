@@ -32,6 +32,7 @@ export interface StatusBoardItem {
   monitorId: string;
   name: string;
   url: string;
+  project?: string | null;
   status: MonitorStatus;
   enabled?: boolean;
   lastResponseTimeMs: number | null;
@@ -43,6 +44,7 @@ export interface SslExpiringItem {
   monitorId: string;
   name: string;
   url: string;
+  project?: string | null;
   sslExpiresAt: string | null;
   daysRemaining: number | null;
 }
@@ -51,6 +53,7 @@ export interface DomainExpiringItem {
   monitorId: string;
   name: string;
   url: string;
+  project?: string | null;
   domainExpiresAt: string | null;
   daysRemaining: number | null;
 }
@@ -60,7 +63,7 @@ export interface IncidentRow {
   status: "open" | "resolved";
   startedAt: string;
   durationSec: number | null;
-  monitorId?: { name?: string; url?: string };
+  monitorId?: { name?: string; url?: string; projectId?: { name?: string } | null };
 }
 
 export interface UserLite {

@@ -11,6 +11,7 @@ interface Row {
   monitorId: string;
   name: string;
   url: string;
+  project?: string | null;
   days: number | null;
   date: string | null;
   kind: Kind;
@@ -48,7 +49,9 @@ function RowItem({ r, showKind = false }: { r: Row; showKind?: boolean }) {
           <span className="block truncate text-sm group-hover:text-brand" title={r.name}>
             {r.name}
           </span>
-          <span className="block truncate text-[11px] text-muted" title={r.url}>
+          <span className="block truncate text-[11px] text-muted" title={`${r.project ? `${r.project} · ` : ""}${r.url}`}>
+            {r.project && <span className="text-fg/65">{r.project}</span>}
+            {r.project ? " · " : ""}
             {r.url}
           </span>
         </span>
@@ -88,8 +91,8 @@ export function Renewals() {
   const loading = domain.isLoading || ssl.isLoading;
 
   const rows: Row[] = [
-    ...(domain.data ?? []).map((d) => ({ monitorId: d.monitorId, name: d.name, url: d.url, days: d.daysRemaining, date: d.domainExpiresAt, kind: "domain" as const })),
-    ...(ssl.data ?? []).map((s) => ({ monitorId: s.monitorId, name: s.name, url: s.url, days: s.daysRemaining, date: s.sslExpiresAt, kind: "ssl" as const })),
+    ...(domain.data ?? []).map((d) => ({ monitorId: d.monitorId, name: d.name, url: d.url, project: d.project, days: d.daysRemaining, date: d.domainExpiresAt, kind: "domain" as const })),
+    ...(ssl.data ?? []).map((s) => ({ monitorId: s.monitorId, name: s.name, url: s.url, project: s.project, days: s.daysRemaining, date: s.sslExpiresAt, kind: "ssl" as const })),
   ];
 
   const critical = rows.filter(isCritical).sort((a, b) => (a.days ?? 0) - (b.days ?? 0));

@@ -64,7 +64,9 @@ export function StatusGrid() {
                   <div className="truncate text-[13px] font-medium group-hover:text-brand" title={m.name}>
                     {m.name}
                   </div>
-                  <div className="truncate text-[11px] text-muted" title={m.url}>
+                  <div className="truncate text-[11px] text-muted" title={`${m.project ? `${m.project} · ` : ""}${m.url}`}>
+                    {m.project && <span className="text-fg/65">{m.project}</span>}
+                    {m.project ? " · " : ""}
                     {m.url}
                   </div>
                 </div>
