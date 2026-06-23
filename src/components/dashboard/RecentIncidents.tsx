@@ -25,7 +25,7 @@ export function RecentIncidents() {
       ) : !data?.length ? (
         <EmptyState icon="✅" title="All clear" description="No incidents recorded. Everything is operating normally." />
       ) : (
-        <ul className="relative space-y-1 before:absolute before:left-[5px] before:top-1 before:bottom-1 before:w-px before:bg-border">
+        <ul className="relative max-h-72 space-y-1 overflow-y-auto pr-1 before:absolute before:left-[5px] before:top-1 before:bottom-1 before:w-px before:bg-border">
           {data.map((i) => (
             <li key={i._id} className="relative flex items-start gap-3 pl-5 py-1.5">
               <span className="absolute left-0 top-2.5">

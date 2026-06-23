@@ -34,7 +34,7 @@ export function StatusGrid() {
       ) : !rows.length ? (
         <EmptyState icon="📡" title="No monitors yet" description="Create a monitor to see its live status here." />
       ) : (
-        <div className="-mx-2">
+        <div className="-mx-2 max-h-72 overflow-y-auto pr-1">
           {rows.map((m) => {
             const { color, glow } = statusColor(m.status, m.enabled);
             const tint = projectTint(m.name);
