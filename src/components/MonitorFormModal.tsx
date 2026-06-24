@@ -137,9 +137,25 @@ export function MonitorFormModal({
     }
   }
 
+  function validate(): string | null {
+    if (!name.trim()) return "Monitor name is required.";
+    if (showProjectField && !projectId) return "Please choose a project.";
+    if (!url.trim()) return "URL is required.";
+    if (type !== "ssl") {
+      if (!method) return "Request method is required.";
+      if (!expectedStatusCode || Number.isNaN(Number(expectedStatusCode))) return "Expected status code is required.";
+    }
+    return null;
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const invalid = validate();
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     if (monitor) {
       try {
         await update.mutateAsync({ id: monitor._id, body: buildBody() });
@@ -198,14 +214,14 @@ export function MonitorFormModal({
 
   return (
     <Modal open={open} onClose={onClose} title={monitor ? "Edit Monitor" : "New Monitor"}>
-      <form onSubmit={submit} className="space-y-3 max-h-[75vh] overflow-auto pr-1">
+      <form onSubmit={submit} noValidate className="space-y-3 max-h-[75vh] overflow-auto pr-1">
         {error && <div className="bg-down/15 text-down text-sm rounded-lg px-3 py-2">{error}</div>}
-        <Field label="Monitor name">
-          <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Britannia Website" />
+        <Field label="Monitor name" required>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Britannia Website" />
         </Field>
         {showProjectField && (
-          <Field label="Project" hint="Group this monitor under a project (e.g. Frontend, Backend).">
-            <Select value={projectId} onChange={(e) => setProjectId(e.target.value)} required>
+          <Field label="Project" required hint="Group this monitor under a project (e.g. Frontend, Backend).">
+            <Select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
               {!projectId && <option value="">Select a project…</option>}
               {(projects ?? []).map((p) => (
                 <option key={p.id} value={p.id}>
@@ -216,23 +232,23 @@ export function MonitorFormModal({
           </Field>
         )}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Type">
+          <Field label="Type" required>
             <Select value={type} onChange={(e) => setType(e.target.value as Monitor["type"])}>
               <option value="website">Website</option>
               <option value="api">API</option>
               <option value="ssl">SSL</option>
             </Select>
           </Field>
-          <Field label="Method">
-            <Select value={method} onChange={(e) => setMethod(e.target.value)} disabled={type === "ssl"} required>
+          <Field label="Method" required={type !== "ssl"}>
+            <Select value={method} onChange={(e) => setMethod(e.target.value)} disabled={type === "ssl"}>
               {["GET", "POST", "HEAD", "PUT"].map((m) => (
                 <option key={m}>{m}</option>
               ))}
             </Select>
           </Field>
         </div>
-        <Field label="URL">
-          <Input type="text" value={url} onChange={(e) => setUrl(e.target.value)} required placeholder="britannia.co.in (https:// added if omitted)" />
+        <Field label="URL" required>
+          <Input type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="britannia.co.in (https:// added if omitted)" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Interval">
@@ -243,13 +259,12 @@ export function MonitorFormModal({
               <option value={1800}>30 minutes</option>
             </Select>
           </Field>
-          <Field label="Expected status">
+          <Field label="Expected status" required={type !== "ssl"}>
             <Input
               type="number"
               value={expectedStatusCode}
               onChange={(e) => setExpectedStatusCode(Number(e.target.value))}
               disabled={type === "ssl"}
-              required={type !== "ssl"}
             />
           </Field>
         </div>
