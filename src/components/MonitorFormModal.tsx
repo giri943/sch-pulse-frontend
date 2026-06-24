@@ -73,6 +73,10 @@ export function MonitorFormModal({
     monitor?.expiresAt ? monitor.expiresAt.slice(0, 10) : monitor ? "" : inMonths(3),
   );
   const [error, setError] = useState<string | null>(null);
+  // Per-field validation error (shown inline at the field, not as a top banner).
+  const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null);
+  const clearErr = (f: string) => setFieldError((e) => (e?.field === f ? null : e));
+  const errFor = (f: string) => (fieldError?.field === f ? fieldError.message : undefined);
   // Set when the backend reports an existing monitor for this URL (409).
   const [dup, setDup] = useState<{ id: string; name: string; url: string; alreadyMember: boolean } | null>(null);
   const pending = create.isPending || update.isPending || join.isPending;
@@ -137,13 +141,14 @@ export function MonitorFormModal({
     }
   }
 
-  function validate(): string | null {
-    if (!name.trim()) return "Monitor name is required.";
-    if (showProjectField && !projectId) return "Please choose a project.";
-    if (!url.trim()) return "URL is required.";
+  function validate(): { field: string; message: string } | null {
+    if (!name.trim()) return { field: "name", message: "Monitor name is required." };
+    if (showProjectField && !projectId) return { field: "project", message: "Please choose a project." };
+    if (!url.trim()) return { field: "url", message: "URL is required." };
     if (type !== "ssl") {
-      if (!method) return "Request method is required.";
-      if (!expectedStatusCode || Number.isNaN(Number(expectedStatusCode))) return "Expected status code is required.";
+      if (!method) return { field: "method", message: "Request method is required." };
+      if (!expectedStatusCode || Number.isNaN(Number(expectedStatusCode)))
+        return { field: "status", message: "Expected status code is required." };
     }
     return null;
   }
@@ -153,9 +158,14 @@ export function MonitorFormModal({
     setError(null);
     const invalid = validate();
     if (invalid) {
-      setError(invalid);
+      setFieldError(invalid);
+      // Surface the error at its field — scroll it into view and focus it.
+      const el = document.getElementById(`mf-${invalid.field}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      (el as HTMLElement | null)?.focus?.();
       return;
     }
+    setFieldError(null);
     if (monitor) {
       try {
         await update.mutateAsync({ id: monitor._id, body: buildBody() });
@@ -216,12 +226,12 @@ export function MonitorFormModal({
     <Modal open={open} onClose={onClose} title={monitor ? "Edit Monitor" : "New Monitor"}>
       <form onSubmit={submit} noValidate className="space-y-3 max-h-[75vh] overflow-auto pr-1">
         {error && <div className="bg-down/15 text-down text-sm rounded-lg px-3 py-2">{error}</div>}
-        <Field label="Monitor name" required>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Britannia Website" />
+        <Field label="Monitor name" required error={errFor("name")}>
+          <Input id="mf-name" value={name} onChange={(e) => { setName(e.target.value); clearErr("name"); }} placeholder="Britannia Website" />
         </Field>
         {showProjectField && (
-          <Field label="Project" required hint="Group this monitor under a project (e.g. Frontend, Backend).">
-            <Select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+          <Field label="Project" required hint="Group this monitor under a project (e.g. Frontend, Backend)." error={errFor("project")}>
+            <Select id="mf-project" value={projectId} onChange={(e) => { setProjectId(e.target.value); clearErr("project"); }}>
               {!projectId && <option value="">Select a project…</option>}
               {(projects ?? []).map((p) => (
                 <option key={p.id} value={p.id}>
@@ -239,16 +249,16 @@ export function MonitorFormModal({
               <option value="ssl">SSL</option>
             </Select>
           </Field>
-          <Field label="Method" required={type !== "ssl"}>
-            <Select value={method} onChange={(e) => setMethod(e.target.value)} disabled={type === "ssl"}>
+          <Field label="Method" required={type !== "ssl"} error={errFor("method")}>
+            <Select id="mf-method" value={method} onChange={(e) => { setMethod(e.target.value); clearErr("method"); }} disabled={type === "ssl"}>
               {["GET", "POST", "HEAD", "PUT"].map((m) => (
                 <option key={m}>{m}</option>
               ))}
             </Select>
           </Field>
         </div>
-        <Field label="URL" required>
-          <Input type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="britannia.co.in (https:// added if omitted)" />
+        <Field label="URL" required error={errFor("url")}>
+          <Input id="mf-url" type="text" value={url} onChange={(e) => { setUrl(e.target.value); clearErr("url"); }} placeholder="britannia.co.in (https:// added if omitted)" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Interval">
@@ -259,11 +269,12 @@ export function MonitorFormModal({
               <option value={1800}>30 minutes</option>
             </Select>
           </Field>
-          <Field label="Expected status" required={type !== "ssl"}>
+          <Field label="Expected status" required={type !== "ssl"} error={errFor("status")}>
             <Input
+              id="mf-status"
               type="number"
               value={expectedStatusCode}
-              onChange={(e) => setExpectedStatusCode(Number(e.target.value))}
+              onChange={(e) => { setExpectedStatusCode(Number(e.target.value)); clearErr("status"); }}
               disabled={type === "ssl"}
             />
           </Field>

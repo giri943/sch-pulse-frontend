@@ -80,7 +80,19 @@ export function Button({
 const fieldBase =
   "w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20 placeholder:text-muted/60";
 
-export function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: ReactNode }) {
+export function Field({
+  label,
+  hint,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  error?: string;
+  children: ReactNode;
+}) {
   return (
     <label className="block">
       <span className="text-xs font-medium text-muted">
@@ -88,7 +100,11 @@ export function Field({ label, hint, required, children }: { label: string; hint
         {required && <span className="text-down" aria-hidden> *</span>}
       </span>
       <div className="mt-1.5">{children}</div>
-      {hint && <span className="text-[11px] text-muted/80 mt-1 block">{hint}</span>}
+      {error ? (
+        <span className="text-[11px] text-down mt-1 block">{error}</span>
+      ) : hint ? (
+        <span className="text-[11px] text-muted/80 mt-1 block">{hint}</span>
+      ) : null}
     </label>
   );
 }
