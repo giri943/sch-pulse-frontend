@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, ApiError } from "@/lib/api-client";
 import { useCreateUser, useUpdateUser, useDeleteUser } from "@/lib/mutations";
 import { useMe, can, PERM } from "@/lib/permissions";
 import { useToast } from "@/components/Toast";
@@ -31,6 +31,8 @@ export function UsersPanel() {
   const canManage = can(me, PERM.USER_UPDATE);
   const canDelete = can(me, PERM.USER_DELETE);
   const canSeeRoles = can(me, PERM.ROLE_READ);
+  // Set when deleting a user who solely owns projects — prompts to transfer ownership first.
+  const [transfer, setTransfer] = useState<{ user: UserRow; projects: { id: string; name: string }[] } | null>(null);
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => apiFetch<{ data: UserRow[] }>("/users?limit=100"),
@@ -41,6 +43,39 @@ export function UsersPanel() {
     queryFn: () => apiFetch<RoleLite[]>("/roles"),
     enabled: canSeeRoles,
   });
+
+  function handleDelete(u: UserRow) {
+    if (!confirm(`Delete ${u.name} (${u.email})? This removes their account and access. This can't be undone.`)) return;
+    del.mutate(
+      { id: u.id },
+      {
+        onSuccess: () => toast.success("User deleted"),
+        onError: (e) => {
+          // Sole owner of project(s) — prompt to transfer ownership first.
+          if (e instanceof ApiError && e.code === "OWNERSHIP_TRANSFER_REQUIRED") {
+            const projects = ((e.details as { projects?: { id: string; name: string }[] })?.projects) ?? [];
+            setTransfer({ user: u, projects });
+          } else {
+            toast.error(e instanceof Error ? e.message : "Delete failed");
+          }
+        },
+      },
+    );
+  }
+
+  function confirmTransfer(newOwnerId: string) {
+    if (!transfer || !newOwnerId) return;
+    del.mutate(
+      { id: transfer.user.id, transferToUserId: newOwnerId },
+      {
+        onSuccess: () => {
+          toast.success("Ownership transferred · user deleted");
+          setTransfer(null);
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Transfer failed"),
+      },
+    );
+  }
 
   return (
     <Card>
@@ -103,13 +138,7 @@ export function UsersPanel() {
                   <td className="text-right">
                     <button
                       disabled={u.id === me?.id}
-                      onClick={() => {
-                        if (confirm(`Delete ${u.name} (${u.email})? This removes their account and access. This can't be undone.`))
-                          del.mutate(u.id, {
-                            onSuccess: () => toast.success("User deleted"),
-                            onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
-                          });
-                      }}
+                      onClick={() => handleDelete(u)}
                       className="grid h-7 w-7 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-down disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted"
                       aria-label={`Delete ${u.name}`}
                       title={u.id === me?.id ? "You can't delete your own account" : "Delete user"}
@@ -125,7 +154,69 @@ export function UsersPanel() {
       )}
 
       <NewUserModal open={open} onClose={() => setOpen(false)} roles={roles ?? []} />
+      {transfer && (
+        <TransferOwnershipModal
+          user={transfer.user}
+          projects={transfer.projects}
+          candidates={(users?.data ?? []).filter((u) => u.id !== transfer.user.id && u.status === "active")}
+          pending={del.isPending}
+          onCancel={() => setTransfer(null)}
+          onConfirm={confirmTransfer}
+        />
+      )}
     </Card>
+  );
+}
+
+function TransferOwnershipModal({
+  user,
+  projects,
+  candidates,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  user: UserRow;
+  projects: { id: string; name: string }[];
+  candidates: UserRow[];
+  pending: boolean;
+  onCancel: () => void;
+  onConfirm: (newOwnerId: string) => void;
+}) {
+  const [newOwnerId, setNewOwnerId] = useState("");
+  return (
+    <Modal open onClose={onCancel} title="Transfer project ownership">
+      <div className="space-y-4">
+        <p className="text-sm text-muted">
+          <span className="font-medium text-fg">{user.name}</span> is the sole owner of the project
+          {projects.length === 1 ? "" : "s"} below. Choose who should take over before deleting the account — the new
+          owner will be notified by email.
+        </p>
+        <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm">
+          {projects.map((p) => (
+            <div key={p.id} className="truncate">📁 {p.name}</div>
+          ))}
+        </div>
+        <Field label="New owner">
+          <Select value={newOwnerId} onChange={(e) => setNewOwnerId(e.target.value)} required>
+            <option value="">Select a user…</option>
+            {candidates.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.email})
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="button" variant="danger" disabled={!newOwnerId || pending} onClick={() => onConfirm(newOwnerId)}>
+            {pending ? "Transferring…" : "Transfer & delete"}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

@@ -116,9 +116,13 @@ export function useCreateUser() {
 }
 
 export function useDeleteUser() {
-  const invalidate = useInvalidate([["users"]]);
+  const invalidate = useInvalidate([["users"], ["projects"]]);
   return useMutation({
-    mutationFn: (id: string) => apiFetch(`/users/${id}`, { method: "DELETE" }),
+    mutationFn: ({ id, transferToUserId }: { id: string; transferToUserId?: string }) =>
+      apiFetch(`/users/${id}`, {
+        method: "DELETE",
+        body: transferToUserId ? JSON.stringify({ transferToUserId }) : undefined,
+      }),
     onSuccess: invalidate,
   });
 }
