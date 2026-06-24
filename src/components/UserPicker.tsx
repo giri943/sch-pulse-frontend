@@ -49,9 +49,12 @@ function Avatar({ user, size = 24 }: { user: UserLite; size?: number }) {
 export function UserPicker({
   value,
   onChange,
+  excludeIds = [],
 }: {
   value: UserLite[];
   onChange: (users: UserLite[]) => void;
+  /** User ids to hide from suggestions (e.g. the project owner, who is always alerted). */
+  excludeIds?: string[];
 }) {
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -82,10 +85,10 @@ export function UserPicker({
     staleTime: 10_000,
   });
 
-  const selectedIds = useMemo(() => new Set(value.map((u) => u.id)), [value]);
+  const hiddenIds = useMemo(() => new Set([...value.map((u) => u.id), ...excludeIds]), [value, excludeIds]);
   const suggestions = useMemo(
-    () => (results ?? []).filter((u) => !selectedIds.has(u.id)),
-    [results, selectedIds],
+    () => (results ?? []).filter((u) => !hiddenIds.has(u.id)),
+    [results, hiddenIds],
   );
 
   useEffect(() => {
@@ -123,7 +126,7 @@ export function UserPicker({
   }, [open]);
 
   function add(u: UserLite) {
-    if (selectedIds.has(u.id)) return; // never select twice
+    if (hiddenIds.has(u.id)) return; // never select twice (or an excluded user)
     onChange([...value, u]);
     setQ("");
     setDebouncedQ("");

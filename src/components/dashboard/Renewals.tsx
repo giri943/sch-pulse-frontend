@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useSslExpiring, useDomainExpiring } from "@/lib/hooks";
+import { useSslExpiring, useDomainExpiring, useExpiringMonitors } from "@/lib/hooks";
 import { Card, CardTitle, Skeleton, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
-type Kind = "domain" | "ssl";
+type Kind = "domain" | "ssl" | "monitor";
+const KIND_ICON = { domain: "globe", ssl: "shield", monitor: "activity" } as const;
 interface Row {
   monitorId: string;
   name: string;
@@ -42,9 +43,7 @@ function RowItem({ r, showKind = false }: { r: Row; showKind?: boolean }) {
   return (
     <li className="flex items-center justify-between gap-3 py-2">
       <Link href={`/monitors/${r.monitorId}`} className="group flex min-w-0 items-center gap-2">
-        {showKind && (
-          <Icon name={r.kind === "domain" ? "globe" : "shield"} width={13} height={13} className="shrink-0 text-muted" />
-        )}
+        {showKind && <Icon name={KIND_ICON[r.kind]} width={13} height={13} className="shrink-0 text-muted" />}
         <span className="min-w-0">
           <span className="block truncate text-sm group-hover:text-brand" title={r.name}>
             {r.name}
@@ -64,7 +63,7 @@ function RowItem({ r, showKind = false }: { r: Row; showKind?: boolean }) {
   );
 }
 
-function Group({ icon, label, items, empty }: { icon: "globe" | "shield"; label: string; items: Row[]; empty: string }) {
+function Group({ icon, label, items, empty }: { icon: "globe" | "shield" | "activity"; label: string; items: Row[]; empty: string }) {
   return (
     <div>
       <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted">
@@ -88,16 +87,19 @@ function Group({ icon, label, items, empty }: { icon: "globe" | "shield"; label:
 export function Renewals() {
   const domain = useDomainExpiring();
   const ssl = useSslExpiring();
-  const loading = domain.isLoading || ssl.isLoading;
+  const period = useExpiringMonitors();
+  const loading = domain.isLoading || ssl.isLoading || period.isLoading;
 
   const rows: Row[] = [
     ...(domain.data ?? []).map((d) => ({ monitorId: d.monitorId, name: d.name, url: d.url, project: d.project, days: d.daysRemaining, date: d.domainExpiresAt, kind: "domain" as const })),
     ...(ssl.data ?? []).map((s) => ({ monitorId: s.monitorId, name: s.name, url: s.url, project: s.project, days: s.daysRemaining, date: s.sslExpiresAt, kind: "ssl" as const })),
+    ...(period.data ?? []).map((m) => ({ monitorId: m.monitorId, name: m.name, url: m.url, project: m.project, days: m.daysRemaining, date: m.expiresAt, kind: "monitor" as const })),
   ];
 
   const critical = rows.filter(isCritical).sort((a, b) => (a.days ?? 0) - (b.days ?? 0));
   const domains = rows.filter((r) => r.kind === "domain" && !isCritical(r));
   const ssls = rows.filter((r) => r.kind === "ssl" && !isCritical(r));
+  const periods = rows.filter((r) => r.kind === "monitor" && !isCritical(r));
 
   return (
     <Card>
@@ -127,6 +129,7 @@ export function Renewals() {
           )}
           <Group icon="globe" label="Domains" items={domains} empty="All domains registered well ahead." />
           <Group icon="shield" label="SSL certificates" items={ssls} empty="No certificates nearing expiry." />
+          {periods.length > 0 && <Group icon="activity" label="Monitoring period" items={periods} empty="" />}
         </div>
       )}
     </Card>

@@ -3,8 +3,10 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./api-client";
 import type {
+  Channel,
   DashboardStats,
   DomainExpiringItem,
+  ExpiringMonitorItem,
   DiscoverMonitor,
   DiscoverProject,
   IncidentRow,
@@ -123,3 +125,12 @@ export const useDomainExpiring = () =>
     queryKey: ["dashboard", "domain"],
     queryFn: () => apiFetch<DomainExpiringItem[]>("/dashboard/domain-expiring"),
   });
+
+export const useExpiringMonitors = () =>
+  useQuery({
+    queryKey: ["dashboard", "expiring-monitors"],
+    queryFn: () => apiFetch<ExpiringMonitorItem[]>("/dashboard/expiring-monitors"),
+  });
+
+export const useChannels = () =>
+  useQuery({ queryKey: ["channels"], queryFn: () => apiFetch<Channel[]>("/channels") });

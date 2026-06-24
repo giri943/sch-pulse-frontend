@@ -34,6 +34,7 @@ function ResetForm() {
         required
         className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-brand"
       />
+      <p className="text-[11px] text-muted">At least 8 characters, with an uppercase letter, a lowercase letter and a number.</p>
       <button className="w-full bg-brand text-white rounded-lg py-2 text-sm font-medium">Update password</button>
     </form>
   );

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCreateMonitor, useUpdateMonitor, useJoinMonitor, type MonitorBody } from "@/lib/mutations";
-import { useProjects } from "@/lib/hooks";
+import { useProjects, useProjectMembers, useChannels } from "@/lib/hooks";
 import { ApiError } from "@/lib/api-client";
 import type { Monitor, UserLite } from "@/lib/types";
 import { Button, Field, Input, Modal, Select } from "@/components/ui";
@@ -63,12 +63,15 @@ export function MonitorFormModal({
   const [type, setType] = useState<Monitor["type"]>(monitor?.type ?? "website");
   const [url, setUrl] = useState(monitor?.url ?? "");
   const [method, setMethod] = useState(monitor?.method ?? "GET");
-  const [intervalSec, setIntervalSec] = useState(monitor?.intervalSec ?? 60);
+  const [intervalSec, setIntervalSec] = useState(monitor?.intervalSec ?? 300);
   const [expectedStatusCode, setExpectedStatusCode] = useState(monitor?.expectedStatusCode ?? 200);
   const [members, setMembers] = useState<UserLite[]>(toUserLites(monitor?.members));
   const [extraEmails, setExtraEmails] = useState((monitor?.extraAlertEmails ?? []).join(", "));
   const [channels, setChannels] = useState<string[]>(toChannelIds(monitor?.channels));
-  const [expiresAt, setExpiresAt] = useState<string>(monitor?.expiresAt ? monitor.expiresAt.slice(0, 10) : "");
+  // New monitors default to a 3-month monitoring period; editing keeps the stored value.
+  const [expiresAt, setExpiresAt] = useState<string>(
+    monitor?.expiresAt ? monitor.expiresAt.slice(0, 10) : monitor ? "" : inMonths(3),
+  );
   const [error, setError] = useState<string | null>(null);
   // Set when the backend reports an existing monitor for this URL (409).
   const [dup, setDup] = useState<{ id: string; name: string; url: string; alreadyMember: boolean } | null>(null);
@@ -78,6 +81,24 @@ export function MonitorFormModal({
   useEffect(() => {
     if (!projectId && !lockProjectId && projects?.length) setProjectId(projects[0].id);
   }, [projects, projectId, lockProjectId]);
+
+  // The project owner is always alerted automatically — hide them from Tag Users.
+  const { data: projectMembers } = useProjectMembers(projectId);
+  const ownerIds = useMemo(
+    () => (projectMembers ?? []).filter((m) => m.role === "owner").map((m) => m.user.id),
+    [projectMembers],
+  );
+
+  // For a NEW monitor, pre-select all notification channels so the owner is notified there too.
+  const { data: allChannels } = useChannels();
+  const didDefaultChannels = useRef(false);
+  useEffect(() => {
+    if (monitor || didDefaultChannels.current) return;
+    if (allChannels && allChannels.length) {
+      setChannels(allChannels.map((c) => c.id));
+      didDefaultChannels.current = true;
+    }
+  }, [allChannels, monitor]);
 
   // Hide the picker when creating inside a project; show it when editing (to move projects).
   const showProjectField = !lockProjectId || !!monitor;
@@ -203,7 +224,7 @@ export function MonitorFormModal({
             </Select>
           </Field>
           <Field label="Method">
-            <Select value={method} onChange={(e) => setMethod(e.target.value)} disabled={type === "ssl"}>
+            <Select value={method} onChange={(e) => setMethod(e.target.value)} disabled={type === "ssl"} required>
               {["GET", "POST", "HEAD", "PUT"].map((m) => (
                 <option key={m}>{m}</option>
               ))}
@@ -228,11 +249,12 @@ export function MonitorFormModal({
               value={expectedStatusCode}
               onChange={(e) => setExpectedStatusCode(Number(e.target.value))}
               disabled={type === "ssl"}
+              required={type !== "ssl"}
             />
           </Field>
         </div>
-        <Field label="Tag users (visibility + alerts)">
-          <UserPicker value={members} onChange={setMembers} />
+        <Field label="Tag users (visibility + alerts)" hint="The project owner is always alerted automatically.">
+          <UserPicker value={members} onChange={setMembers} excludeIds={ownerIds} />
         </Field>
         <Field label="Extra alert emails (non-users, comma-separated)">
           <Input value={extraEmails} onChange={(e) => setExtraEmails(e.target.value)} placeholder="client@brand.com" />

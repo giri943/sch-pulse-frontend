@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCreateProject, useUpdateProject, useCreateMonitor } from "@/lib/mutations";
+import { useChannels } from "@/lib/hooks";
 import { ApiError } from "@/lib/api-client";
 import { useToast } from "@/components/Toast";
 import type { Project } from "@/lib/types";
@@ -40,6 +41,13 @@ function hostOf(url: string): string {
   }
 }
 
+/** Default monitoring period for inline-created monitors: 3 months out. */
+function inThreeMonths(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 3);
+  return d.toISOString();
+}
+
 /** Create or edit a project. On create you can also add monitors inline. */
 export function ProjectFormModal({
   open,
@@ -53,6 +61,7 @@ export function ProjectFormModal({
   const create = useCreateProject();
   const update = useUpdateProject();
   const createMonitor = useCreateMonitor();
+  const { data: allChannels } = useChannels();
   const toast = useToast();
   const isEdit = !!project;
 
@@ -88,6 +97,7 @@ export function ProjectFormModal({
     try {
       const proj = (await create.mutateAsync({ name, description })) as { id: string };
       const toAdd = rows.filter((r) => r.url.trim());
+      const channels = (allChannels ?? []).map((c) => c.id);
       let added = 0;
       let duplicates = 0;
       let failed = 0;
@@ -100,8 +110,10 @@ export function ProjectFormModal({
             type: r.type,
             projectId: proj.id,
             method: "GET",
-            intervalSec: 60,
+            intervalSec: 300,
             expectedStatusCode: Number(r.expectedStatusCode) || 200,
+            channels,
+            expiresAt: inThreeMonths(),
           });
           added += 1;
         } catch (err) {

@@ -58,6 +58,15 @@ export interface DomainExpiringItem {
   daysRemaining: number | null;
 }
 
+export interface ExpiringMonitorItem {
+  monitorId: string;
+  name: string;
+  url: string;
+  project?: string | null;
+  expiresAt: string | null;
+  daysRemaining: number | null;
+}
+
 export interface IncidentRow {
   _id: string;
   status: "open" | "resolved";
