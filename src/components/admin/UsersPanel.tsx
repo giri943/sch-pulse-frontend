@@ -108,7 +108,6 @@ function NewUserModal({ open, onClose, roles }: { open: boolean; onClose: () => 
   const create = useCreateUser();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [roleId, setRoleId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -116,11 +115,10 @@ function NewUserModal({ open, onClose, roles }: { open: boolean; onClose: () => 
     e.preventDefault();
     setError(null);
     try {
-      await create.mutateAsync({ name, email, password, roleId: roleId || roles[0]?.id });
+      await create.mutateAsync({ name, email, roleId: roleId || roles[0]?.id });
       onClose();
       setName("");
       setEmail("");
-      setPassword("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create user");
     }
@@ -136,15 +134,6 @@ function NewUserModal({ open, onClose, roles }: { open: boolean; onClose: () => 
         <Field label="Email">
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </Field>
-        <Field label="Temporary password">
-          <Input
-            type="text"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="Min 8 chars, mixed case + number"
-          />
-        </Field>
         <Field label="Role">
           <Select value={roleId} onChange={(e) => setRoleId(e.target.value)} required>
             <option value="">Select a role…</option>
@@ -155,6 +144,10 @@ function NewUserModal({ open, onClose, roles }: { open: boolean; onClose: () => 
             ))}
           </Select>
         </Field>
+        <p className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-muted">
+          They'll get an email to set their own password — or they can sign in with their Schbang Google account. No
+          password needed here.
+        </p>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel

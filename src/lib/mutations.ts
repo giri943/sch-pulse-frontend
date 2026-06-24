@@ -109,7 +109,7 @@ export function useMonitorAction() {
 export function useCreateUser() {
   const invalidate = useInvalidate([["users"]]);
   return useMutation({
-    mutationFn: (body: { name: string; email: string; password: string; roleId: string }) =>
+    mutationFn: (body: { name: string; email: string; password?: string; roleId: string }) =>
       apiFetch("/users", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: invalidate,
   });
