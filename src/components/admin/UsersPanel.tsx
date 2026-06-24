@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
-import { useCreateUser, useUpdateUser } from "@/lib/mutations";
+import { useCreateUser, useUpdateUser, useDeleteUser } from "@/lib/mutations";
 import { useMe, can, PERM } from "@/lib/permissions";
+import { useToast } from "@/components/Toast";
 import { Button, Card, Field, Input, Modal, Select, StatusBadge } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 interface RoleLite {
   id: string;
@@ -24,7 +26,10 @@ export function UsersPanel() {
   const { data: me } = useMe();
   const [open, setOpen] = useState(false);
   const update = useUpdateUser();
+  const del = useDeleteUser();
+  const toast = useToast();
   const canManage = can(me, PERM.USER_UPDATE);
+  const canDelete = can(me, PERM.USER_DELETE);
   const canSeeRoles = can(me, PERM.ROLE_READ);
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
@@ -58,6 +63,7 @@ export function UsersPanel() {
               <th>Auth</th>
               {canSeeRoles && <th>Role</th>}
               <th>Status</th>
+              {canDelete && <th className="text-right pr-1">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -93,6 +99,25 @@ export function UsersPanel() {
                     <StatusBadge status={u.status} />
                   </button>
                 </td>
+                {canDelete && (
+                  <td className="text-right">
+                    <button
+                      disabled={u.id === me?.id}
+                      onClick={() => {
+                        if (confirm(`Delete ${u.name} (${u.email})? This removes their account and access. This can't be undone.`))
+                          del.mutate(u.id, {
+                            onSuccess: () => toast.success("User deleted"),
+                            onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
+                          });
+                      }}
+                      className="grid h-7 w-7 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-down disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted"
+                      aria-label={`Delete ${u.name}`}
+                      title={u.id === me?.id ? "You can't delete your own account" : "Delete user"}
+                    >
+                      <Icon name="trash" width={14} height={14} />
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
