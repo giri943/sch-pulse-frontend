@@ -93,10 +93,11 @@ export const useDashboardStats = () =>
     refetchInterval: 30_000,
   });
 
-export const useUptimeOverview = (range: "24h" | "7d" | "30d") =>
+export const useUptimeOverview = (range: "24h" | "7d" | "30d", projectId?: string) =>
   useQuery({
-    queryKey: ["dashboard", "uptime", range],
-    queryFn: () => apiFetch<UptimeOverview>(`/dashboard/uptime?range=${range}`),
+    queryKey: ["dashboard", "uptime", range, projectId ?? "all"],
+    queryFn: () =>
+      apiFetch<UptimeOverview>(`/dashboard/uptime?range=${range}${projectId ? `&projectId=${projectId}` : ""}`),
     refetchInterval: 60_000,
   });
 

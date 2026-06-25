@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useUptimeOverview } from "@/lib/hooks";
-import { Card, Skeleton } from "@/components/ui";
+import { useUptimeOverview, useProjects } from "@/lib/hooks";
+import { Card, Select, Skeleton } from "@/components/ui";
 import type { UptimePoint } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
@@ -31,7 +31,9 @@ function barColor(uptime: number | null): { bg: string; opacity: number } {
 export function UptimeOverview() {
   const [range, setRange] = useState<Range>("24h");
   const [metric, setMetric] = useState<Metric>("uptime");
-  const { data, isLoading } = useUptimeOverview(range);
+  const [projectId, setProjectId] = useState("");
+  const { data: projects } = useProjects();
+  const { data, isLoading } = useUptimeOverview(range, projectId || undefined);
   const series = useMemo(() => data?.series ?? [], [data]);
 
   // Accurate range-wide uptime from raw counts.
@@ -67,14 +69,24 @@ export function UptimeOverview() {
   return (
     <Card>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <Segmented<Metric>
-          value={metric}
-          onChange={setMetric}
-          options={[
-            { k: "uptime", label: "Uptime" },
-            { k: "response", label: "Response time" },
-          ]}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-auto text-xs">
+            <option value="">All projects</option>
+            {(projects ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+          <Segmented<Metric>
+            value={metric}
+            onChange={setMetric}
+            options={[
+              { k: "uptime", label: "Uptime" },
+              { k: "response", label: "Response time" },
+            ]}
+          />
+        </div>
         <div className="flex items-center gap-3">
           {rangeUptime != null && (
             <span className={cn("text-sm font-semibold tabular-nums", uptimeTone)}>
