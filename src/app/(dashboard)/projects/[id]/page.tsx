@@ -10,6 +10,7 @@ import { useMe, can, isSuperAdmin, PERM } from "@/lib/permissions";
 import { PageHeader, Button, Input, Select, Skeleton, EmptyState, Card, Tabs } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { MonitorCard } from "@/components/MonitorCard";
+import { ArchivedMonitorCard } from "@/components/ArchivedMonitorCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
 import { ProjectMembersPanel } from "@/components/ProjectMembersPanel";
 import { cn } from "@/lib/cn";
@@ -38,6 +39,21 @@ export default function ProjectDetailPage() {
     queryFn: () => apiFetch<Paginated<Monitor>>(`/monitors?projectId=${id}&limit=100`),
     refetchInterval: 15_000,
   });
+
+  // Archived (soft-deleted) monitors — fetched only when the Archived filter is on.
+  const isArchived = status === "archived";
+  const { data: archivedData, isLoading: archivedLoading } = useQuery({
+    queryKey: ["monitors", "project", id, "archived"],
+    queryFn: () => apiFetch<Paginated<Monitor>>(`/monitors?projectId=${id}&deleted=true&limit=100`),
+    enabled: isArchived,
+    refetchInterval: 30_000,
+  });
+  const archived = useMemo(() => {
+    const list = archivedData?.data ?? [];
+    if (!q.trim()) return list;
+    const needle = q.toLowerCase();
+    return list.filter((m) => m.name.toLowerCase().includes(needle) || m.url.toLowerCase().includes(needle));
+  }, [archivedData, q]);
 
   const all = data?.data ?? [];
   const kpis = useMemo(() => {
@@ -124,10 +140,31 @@ export default function ProjectDetailPage() {
           <option value="degraded">Degraded</option>
           <option value="down">Down</option>
           <option value="paused">Paused</option>
+          <option value="archived">Archived</option>
         </Select>
       </div>
 
-      {isLoading ? (
+      {isArchived ? (
+        archivedLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-3">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36" />)}
+          </div>
+        ) : !archived.length ? (
+          <div className="bg-surface border border-border rounded-xl">
+            <EmptyState
+              icon="🗄️"
+              title="No archived monitors"
+              description="When a monitor's monitoring period ends it's archived here for 7 days — restore it before it's permanently deleted."
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-3">
+            {archived.map((m) => (
+              <ArchivedMonitorCard key={m._id} monitor={m} canManage={canManage} />
+            ))}
+          </div>
+        )
+      ) : isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40" />)}
         </div>

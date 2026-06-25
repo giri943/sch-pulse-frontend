@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
+import { useProjects } from "@/lib/hooks";
 import type { IncidentRow, Paginated } from "@/lib/types";
 import { PageHeader, Card, StatusBadge, StatusDot, Select, Skeleton, EmptyState } from "@/components/ui";
 
@@ -16,9 +17,14 @@ function duration(sec: number | null): string {
 
 export default function IncidentsPage() {
   const [status, setStatus] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const { data: projects } = useProjects();
   const { data, isLoading } = useQuery({
-    queryKey: ["incidents", status],
-    queryFn: () => apiFetch<Paginated<IncidentRow>>(`/incidents?limit=50${status ? `&status=${status}` : ""}`),
+    queryKey: ["incidents", status, projectId],
+    queryFn: () =>
+      apiFetch<Paginated<IncidentRow>>(
+        `/incidents?limit=50${status ? `&status=${status}` : ""}${projectId ? `&projectId=${projectId}` : ""}`,
+      ),
     refetchInterval: 30_000,
   });
 
@@ -28,11 +34,21 @@ export default function IncidentsPage() {
         title="Incidents"
         subtitle="Downtime events across the monitors you can see."
         actions={
-          <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-auto">
-            <option value="">All</option>
-            <option value="open">Open</option>
-            <option value="resolved">Resolved</option>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-auto">
+              <option value="">All projects</option>
+              {(projects ?? []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-auto">
+              <option value="">All</option>
+              <option value="open">Open</option>
+              <option value="resolved">Resolved</option>
+            </Select>
+          </div>
         }
       />
 
