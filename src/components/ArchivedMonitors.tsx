@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 import { useRestoreMonitor, useDeleteMonitor } from "@/lib/mutations";
 import { useToast } from "@/components/Toast";
 import type { Monitor, Paginated } from "@/lib/types";
 import { Card, Button, EmptyState, Skeleton } from "@/components/ui";
+import { RestoreMonitorDialog } from "@/components/RestoreMonitorDialog";
 
 function purgeIn(softDeletedAt?: string | null): string {
   if (!softDeletedAt) return "";
@@ -17,6 +19,7 @@ export function ArchivedMonitors({ canManage }: { canManage: boolean }) {
   const restore = useRestoreMonitor();
   const del = useDeleteMonitor();
   const toast = useToast();
+  const [restoring, setRestoring] = useState<Monitor | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ["monitors", "archived"],
     queryFn: () => apiFetch<Paginated<Monitor>>("/monitors?deleted=true&limit=100"),
@@ -38,7 +41,7 @@ export function ArchivedMonitors({ canManage }: { canManage: boolean }) {
               </div>
               {canManage && (
                 <div className="flex gap-1.5 shrink-0">
-                  <Button size="sm" variant="subtle" onClick={() => restore.mutate(m._id, { onSuccess: () => toast.success("Monitor restored (no expiry)") })}>
+                  <Button size="sm" variant="subtle" onClick={() => setRestoring(m)}>
                     Restore
                   </Button>
                   <button
@@ -52,6 +55,27 @@ export function ArchivedMonitors({ canManage }: { canManage: boolean }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {restoring && (
+        <RestoreMonitorDialog
+          open
+          onClose={() => setRestoring(null)}
+          monitorName={restoring.name}
+          pending={restore.isPending}
+          onConfirm={(expiresAt) =>
+            restore.mutate(
+              { id: restoring._id, expiresAt },
+              {
+                onSuccess: () => {
+                  toast.success("Monitor restored");
+                  setRestoring(null);
+                },
+                onError: (e) => toast.error(e instanceof Error ? e.message : "Restore failed"),
+              },
+            )
+          }
+        />
       )}
     </Card>
   );

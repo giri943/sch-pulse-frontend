@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useRestoreMonitor } from "@/lib/mutations";
 import { useToast } from "@/components/Toast";
 import type { Monitor } from "@/lib/types";
 import { Button } from "@/components/ui";
+import { RestoreMonitorDialog } from "@/components/RestoreMonitorDialog";
 import { initials, projectTint } from "@/lib/projectVisual";
 
 /** Monitors are hard-deleted this many days after archiving (matches the backend). */
@@ -19,8 +21,21 @@ function daysUntilPurge(softDeletedAt?: string | null): number | null {
 export function ArchivedMonitorCard({ monitor: m, canManage }: { monitor: Monitor; canManage: boolean }) {
   const restore = useRestoreMonitor();
   const toast = useToast();
+  const [dialog, setDialog] = useState(false);
   const tint = projectTint(m.name);
   const left = daysUntilPurge(m.softDeletedAt);
+
+  const doRestore = (expiresAt: string | null) =>
+    restore.mutate(
+      { id: m._id, expiresAt },
+      {
+        onSuccess: () => {
+          toast.success("Monitor restored");
+          setDialog(false);
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Restore failed"),
+      },
+    );
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-border bg-surface p-4">
@@ -56,19 +71,20 @@ export function ArchivedMonitorCard({ monitor: m, canManage }: { monitor: Monito
 
       {canManage && (
         <div className="border-t border-border pt-3">
-          <Button
-            size="sm"
-            onClick={() =>
-              restore.mutate(m._id, {
-                onSuccess: () => toast.success("Monitor restored"),
-                onError: (e) => toast.error(e instanceof Error ? e.message : "Restore failed"),
-              })
-            }
-            disabled={restore.isPending}
-          >
-            {restore.isPending ? "Restoring…" : "Restore monitor"}
+          <Button size="sm" onClick={() => setDialog(true)} disabled={restore.isPending}>
+            Restore monitor
           </Button>
         </div>
+      )}
+
+      {dialog && (
+        <RestoreMonitorDialog
+          open
+          onClose={() => setDialog(false)}
+          monitorName={m.name}
+          pending={restore.isPending}
+          onConfirm={doRestore}
+        />
       )}
     </div>
   );

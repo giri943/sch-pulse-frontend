@@ -85,7 +85,8 @@ export function useDeleteMonitor() {
 export function useRestoreMonitor() {
   const invalidate = useInvalidate([["monitors"], ["dashboard"], ["projects"]]);
   return useMutation({
-    mutationFn: (id: string) => apiFetch(`/monitors/${id}/restore`, { method: "POST" }),
+    mutationFn: ({ id, expiresAt }: { id: string; expiresAt?: string | null }) =>
+      apiFetch(`/monitors/${id}/restore`, { method: "POST", body: JSON.stringify({ expiresAt: expiresAt ?? null }) }),
     onSuccess: invalidate,
   });
 }
