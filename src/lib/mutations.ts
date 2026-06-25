@@ -40,6 +40,21 @@ function patchMonitor(qc: ReturnType<typeof useQueryClient>, id: string, patch: 
   );
 }
 
+/** Optimistically remove a monitor by id from every cached list/board. */
+function removeMonitor(qc: ReturnType<typeof useQueryClient>, id: string) {
+  qc.setQueriesData({ queryKey: ["monitors"] }, (old: unknown) => {
+    if (old && typeof old === "object" && Array.isArray((old as { data?: unknown }).data)) {
+      const o = old as { data: Array<AnyRec> };
+      return { ...o, data: o.data.filter((m) => m._id !== id) };
+    }
+    if (Array.isArray(old)) return (old as Array<AnyRec>).filter((m) => m._id !== id);
+    return old;
+  });
+  qc.setQueriesData({ queryKey: ["dashboard", "status-board"] }, (old: unknown) =>
+    Array.isArray(old) ? (old as Array<AnyRec>).filter((m) => m.monitorId !== id) : old,
+  );
+}
+
 export function useCreateMonitor() {
   const invalidate = useInvalidate([["monitors"], ["dashboard"], ["projects"]]);
   return useMutation({
@@ -56,10 +71,15 @@ export function useUpdateMonitor() {
   });
 }
 export function useDeleteMonitor() {
+  const qc = useQueryClient();
   const invalidate = useInvalidate([["monitors"], ["dashboard"], ["projects"]]);
   return useMutation({
     mutationFn: (id: string) => apiFetch(`/monitors/${id}`, { method: "DELETE" }),
-    onSuccess: invalidate,
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ["monitors"] });
+      removeMonitor(qc, id); // disappears from the list immediately
+    },
+    onSettled: invalidate,
   });
 }
 export function useRestoreMonitor() {
@@ -119,11 +139,13 @@ export function useMonitorAction() {
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: "run" | "pause" | "resume" }) =>
       apiFetch(`/monitors/${id}/${action}`, { method: "POST" }),
-    // Pause/resume flips `enabled` instantly so the UI (and the paused filter) updates on click.
+    // Pause/resume updates enabled + status instantly so the UI (and the
+    // paused/operational filters) reflect on click — matching the server, which
+    // sets paused / operational respectively.
     onMutate: async ({ id, action }) => {
       if (action === "pause" || action === "resume") {
         await qc.cancelQueries({ queryKey: ["monitors"] });
-        patchMonitor(qc, id, { enabled: action === "resume" });
+        patchMonitor(qc, id, action === "resume" ? { enabled: true, status: "operational" } : { enabled: false, status: "paused" });
       }
     },
     onSettled: invalidate, // reconcile with the server (also corrects the cache if it failed)
