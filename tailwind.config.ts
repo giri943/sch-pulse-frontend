@@ -15,6 +15,10 @@ const config: Config = {
       screens: {
         "3xl": "1920px",
       },
+      fontFamily: {
+        sans: ["var(--font-geist-sans)", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
       colors: {
         bg: token("bg"),
         surface: token("surface"),

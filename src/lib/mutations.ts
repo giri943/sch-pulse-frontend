@@ -23,6 +23,23 @@ function useInvalidate(keys: string[][]) {
   return () => keys.forEach((k) => void qc.invalidateQueries({ queryKey: k }));
 }
 
+type AnyRec = Record<string, unknown>;
+/** Optimistically patch a monitor by id across every cached view (lists, detail, status board). */
+function patchMonitor(qc: ReturnType<typeof useQueryClient>, id: string, patch: AnyRec) {
+  qc.setQueriesData({ queryKey: ["monitors"] }, (old: unknown) => {
+    if (old && typeof old === "object" && Array.isArray((old as { data?: unknown }).data)) {
+      const o = old as { data: Array<AnyRec> };
+      return { ...o, data: o.data.map((m) => (m._id === id ? { ...m, ...patch } : m)) };
+    }
+    if (Array.isArray(old)) return (old as Array<AnyRec>).map((m) => (m._id === id ? { ...m, ...patch } : m));
+    return old;
+  });
+  qc.setQueryData(["monitor", id], (old: unknown) => (old ? { ...(old as AnyRec), ...patch } : old));
+  qc.setQueriesData({ queryKey: ["dashboard", "status-board"] }, (old: unknown) =>
+    Array.isArray(old) ? (old as Array<AnyRec>).map((m) => (m.monitorId === id ? { ...m, ...patch } : m)) : old,
+  );
+}
+
 export function useCreateMonitor() {
   const invalidate = useInvalidate([["monitors"], ["dashboard"], ["projects"]]);
   return useMutation({
@@ -97,11 +114,19 @@ export function useTestChannel() {
 }
 
 export function useMonitorAction() {
+  const qc = useQueryClient();
   const invalidate = useInvalidate([["monitors"], ["monitor"], ["dashboard"], ["projects"]]);
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: "run" | "pause" | "resume" }) =>
       apiFetch(`/monitors/${id}/${action}`, { method: "POST" }),
-    onSuccess: invalidate,
+    // Pause/resume flips `enabled` instantly so the UI (and the paused filter) updates on click.
+    onMutate: async ({ id, action }) => {
+      if (action === "pause" || action === "resume") {
+        await qc.cancelQueries({ queryKey: ["monitors"] });
+        patchMonitor(qc, id, { enabled: action === "resume" });
+      }
+    },
+    onSettled: invalidate, // reconcile with the server (also corrects the cache if it failed)
   });
 }
 
@@ -127,11 +152,30 @@ export function useDeleteUser() {
   });
 }
 export function useUpdateUser() {
+  const qc = useQueryClient();
   const invalidate = useInvalidate([["users"]]);
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: { roleId?: string; status?: "active" | "disabled" } }) =>
       apiFetch(`/users/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-    onSuccess: invalidate,
+    // Role/status change reflects instantly in the Users table.
+    onMutate: async ({ id, body }) => {
+      await qc.cancelQueries({ queryKey: ["users"] });
+      qc.setQueriesData({ queryKey: ["users"] }, (old: unknown) => {
+        if (!old || typeof old !== "object" || !Array.isArray((old as { data?: unknown }).data)) return old;
+        const o = old as { data: Array<AnyRec & { id: string; role?: { id: string; name: string } | null }> };
+        return {
+          ...o,
+          data: o.data.map((u) => {
+            if (u.id !== id) return u;
+            const next: typeof u = { ...u };
+            if (body.status) next.status = body.status;
+            if (body.roleId) next.role = { id: body.roleId, name: u.role?.name ?? "" };
+            return next;
+          }),
+        };
+      });
+    },
+    onSettled: invalidate, // reconcile (fills the real role name, etc.)
   });
 }
 
