@@ -9,6 +9,8 @@ import { ToastProvider } from "@/components/Toast";
 export const metadata: Metadata = {
   title: "Schbang Pulse",
   description: "Internal website & API monitoring platform",
+  // Internal tool — keep it out of search indexes even if the URL leaks.
+  robots: { index: false, follow: false },
 };
 
 // Set the theme class before paint to avoid a flash of the wrong theme.
