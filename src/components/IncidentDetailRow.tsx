@@ -111,8 +111,8 @@ function Timeline({ started, acknowledged, resolved }: { started: string; acknow
   ];
   return (
     <ol className="space-y-2">
-      {steps.map((s, i) => (
-        <li key={i} className="flex items-center gap-2.5 text-sm">
+      {steps.map((s) => (
+        <li key={s.label} className="flex items-center gap-2.5 text-sm">
           <span className={cn("h-1.5 w-1.5 rounded-full", s.tone === "text-down" ? "bg-down" : s.tone === "text-up" ? "bg-up" : s.tone === "text-degraded" ? "bg-degraded" : "bg-muted")} />
           <span className={cn("w-28 shrink-0 font-medium", s.tone)}>{s.label}</span>
           <span className="text-muted">{s.time ? fmtTime(s.time) : s.label === "Ongoing" ? "still down" : "—"}</span>
@@ -156,8 +156,8 @@ function Recommendations({ items }: { items: { title: string; steps: string[] }[
   return (
     <Section title="Recommended checks">
       <ul className="space-y-2">
-        {items.map((r, i) => (
-          <li key={i} className="text-sm">
+        {items.map((r) => (
+          <li key={r.title} className="text-sm">
             <div className="font-medium">{r.title}</div>
             {r.steps.length > 0 && (
               <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted">

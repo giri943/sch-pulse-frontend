@@ -99,16 +99,16 @@ export function EntityPopover({
         aria-haspopup="menu"
         aria-expanded={open}
         className={cn(
-          "rounded-lg border border-border bg-surface px-3 py-1.5 text-left transition-colors",
+          "w-full rounded-xl border border-border bg-surface px-4 py-3 text-left transition-colors",
           !disabled && "hover:border-brand/40 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
           disabled && "cursor-default",
         )}
       >
-        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted">
-          {label}
-          {!disabled && <Icon name="chevron" width={11} height={11} className={cn("transition-transform", open && "rotate-180")} />}
+        <div className="flex items-center justify-between gap-1 text-[10px] uppercase tracking-wide text-muted">
+          <span className="truncate">{label}</span>
+          {!disabled && <Icon name="chevron" width={12} height={12} className={cn("shrink-0 transition-transform", open && "rotate-180")} />}
         </div>
-        <div className={cn("text-sm font-semibold", toneText)}>{value}</div>
+        <div className={cn("mt-1 text-lg font-semibold tabular-nums", toneText)}>{value}</div>
       </button>
 
       {open && (
