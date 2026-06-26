@@ -7,6 +7,7 @@ import { useToast } from "@/components/Toast";
 import { StatusDot, Skeleton, Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { formatDateTime } from "@/lib/dates";
 import type { IncidentRow } from "@/lib/types";
 
 function fmtDuration(sec: number | null): string {
@@ -15,7 +16,7 @@ function fmtDuration(sec: number | null): string {
   const m = Math.floor(sec / 60);
   return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
 }
-const fmtTime = (iso?: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
+const fmtTime = (iso?: string | null) => formatDateTime(iso);
 
 const textareaCls =
   "w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20 placeholder:text-muted/60 resize-y min-h-[64px]";

@@ -7,6 +7,7 @@ import type { Monitor } from "@/lib/types";
 import { Button } from "@/components/ui";
 import { RestoreMonitorDialog } from "@/components/RestoreMonitorDialog";
 import { initials, projectTint } from "@/lib/projectVisual";
+import { formatDate } from "@/lib/dates";
 
 /** Monitors are hard-deleted this many days after archiving (matches the backend). */
 const PURGE_DAYS = 7;
@@ -58,7 +59,7 @@ export function ArchivedMonitorCard({ monitor: m, canManage }: { monitor: Monito
       </div>
 
       <div className="text-xs text-muted">
-        Archived{m.softDeletedAt ? ` ${new Date(m.softDeletedAt).toLocaleDateString()}` : ""}
+        Archived{m.softDeletedAt ? ` ${formatDate(m.softDeletedAt)}` : ""}
         {left != null && (
           <>
             {" · "}

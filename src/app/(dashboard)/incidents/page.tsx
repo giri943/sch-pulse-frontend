@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api-client";
 import { useProjects } from "@/lib/hooks";
 import type { IncidentRow, Paginated } from "@/lib/types";
 import { PageHeader, Card, StatusBadge, StatusDot, Select, Skeleton, EmptyState } from "@/components/ui";
+import { formatDateTime } from "@/lib/dates";
 
 function duration(sec: number | null): string {
   if (sec == null) return "ongoing";
@@ -76,7 +77,7 @@ export default function IncidentsPage() {
                       </div>
                       <div className="truncate text-[11px] text-muted">
                         {i.monitorId?.projectId?.name && <span className="text-fg/65">{i.monitorId.projectId.name} · </span>}
-                        {i.monitorId?.url ?? ""} · started {new Date(i.startedAt).toLocaleString()}
+                        {i.monitorId?.url ?? ""} · started {formatDateTime(i.startedAt)}
                       </div>
                     </div>
                     <span className="shrink-0 text-sm text-muted">{duration(i.durationSec)}</span>

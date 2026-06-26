@@ -5,6 +5,7 @@ import { useSslExpiring, useDomainExpiring, useExpiringMonitors } from "@/lib/ho
 import { Card, CardTitle, Skeleton, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { formatDate } from "@/lib/dates";
 
 type Kind = "domain" | "ssl" | "monitor";
 const KIND = {
@@ -35,8 +36,7 @@ function humanize(days: number | null): { label: string; tone: string } {
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+  return iso ? formatDate(iso) : "";
 }
 
 /**

@@ -15,6 +15,7 @@ import { MetricCard } from "@/components/MetricCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
 import { IncidentDetailRow } from "@/components/IncidentDetailRow";
 import { WafNotice } from "@/components/WafNotice";
+import { formatDate, formatDateTime } from "@/lib/dates";
 
 interface Check { _id: string; up: boolean; statusCode?: number; responseTimeMs?: number; error?: string | null; checkedAt: string }
 interface UptimeSeries { series: { t: string; uptime: number | null; avgResponseMs: number | null }[] }
@@ -36,7 +37,7 @@ function sinceDuration(iso: string | null): string {
   return [d ? `${d}d` : "", h ? `${h}h` : "", `${m}m`].filter(Boolean).join(" ");
 }
 const pct = (v: number | null | undefined) => (v == null ? "—" : `${v}%`);
-const dateStr = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString() : "—");
+const dateStr = (iso: string | null) => formatDate(iso);
 
 export default function MonitorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -144,7 +145,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
       {summary?.monitoringSince && (
         <p className="-mt-1 text-xs text-muted">
           Monitoring since{" "}
-          {new Date(summary.monitoringSince).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}{" "}
+          {formatDate(summary.monitoringSince)}{" "}
           · {sinceDuration(summary.monitoringSince)} of data so far.
         </p>
       )}
@@ -221,7 +222,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
                     <td className={`py-2 ${c.up ? "text-up" : "text-down"}`}>{c.up ? "● up" : "● down"}</td>
                     <td className="text-muted">{c.statusCode ?? c.error ?? "—"}</td>
                     <td className="text-muted">{c.responseTimeMs != null ? `${c.responseTimeMs}ms` : "—"}</td>
-                    <td className="text-muted">{new Date(c.checkedAt).toLocaleString()}</td>
+                    <td className="text-muted">{formatDateTime(c.checkedAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -318,7 +319,7 @@ function ExpiryChip({ expiresAt }: { expiresAt: string | null }) {
   const tone = days <= 3 ? "down" : days <= 7 ? "degraded" : "neutral";
   return (
     <Badge tone={tone}>
-      {days < 0 ? "Expired" : `Expires in ${days}d`} · {new Date(expiresAt).toLocaleDateString()}
+      {days < 0 ? "Expired" : `Expires in ${days}d`} · {formatDate(expiresAt)}
     </Badge>
   );
 }
