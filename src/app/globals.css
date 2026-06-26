@@ -5,10 +5,12 @@
 /* ── Theme tokens (RGB triplets) ───────────────────────────
    :root = dark (default). html.light overrides for light mode. */
 :root {
-  --bg: 9 11 16;
-  --surface: 17 20 27;
-  --surface-2: 23 27 36;
-  --border: 35 41 54;
+  /* Neutral surfaces darkened ~30% (×0.7) for a deeper dark mode; fg/accents
+     kept as-is to preserve contrast. */
+  --bg: 6 8 11;
+  --surface: 12 14 19;
+  --surface-2: 16 19 25;
+  --border: 25 29 38;
   --fg: 230 233 239;
   --muted: 138 146 167;
   --brand: 99 102 241;
