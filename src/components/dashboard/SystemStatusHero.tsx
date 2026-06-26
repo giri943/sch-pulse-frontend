@@ -149,32 +149,33 @@ export function SystemStatusHero() {
           ) : (
             <p className="text-sm text-muted">No monitors to report on yet.</p>
           )}
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Chip label="Uptime 30d" value={uptime30d == null ? "—" : `${uptime30d}%`} />
-            <EntityPopover
-              label="Active incidents"
-              value={incidents}
-              tone={incidents > 0 ? "down" : undefined}
-              items={incidentItems}
-              emptyText="No active incidents"
-            />
-            <EntityPopover
-              label="Domain expiring"
-              value={domainCount}
-              tone={expiryTone(soonestDays(domain))}
-              items={domainItems}
-              emptyText="No domains expiring soon"
-            />
-            <EntityPopover
-              label="SSL expiring"
-              value={sslCount}
-              tone={expiryTone(soonestDays(ssl))}
-              items={sslItems}
-              emptyText="No certificates expiring soon"
-            />
-          </div>
         </div>
+      </div>
+
+      {/* KPI strip — full width so the four cards sit on one even, roomy row. */}
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Chip label="Uptime 30d" value={uptime30d == null ? "—" : `${uptime30d}%`} />
+        <EntityPopover
+          label="Active incidents"
+          value={incidents}
+          tone={incidents > 0 ? "down" : undefined}
+          items={incidentItems}
+          emptyText="No active incidents"
+        />
+        <EntityPopover
+          label="Domain expiring"
+          value={domainCount}
+          tone={expiryTone(soonestDays(domain))}
+          items={domainItems}
+          emptyText="No domains expiring soon"
+        />
+        <EntityPopover
+          label="SSL expiring"
+          value={sslCount}
+          tone={expiryTone(soonestDays(ssl))}
+          items={sslItems}
+          emptyText="No certificates expiring soon"
+        />
       </div>
     </section>
   );
@@ -210,9 +211,9 @@ function Legend({ varName, label, n }: { varName: string; label: string; n: numb
 function Chip({ label, value, tone }: { label: string; value: string | number; tone?: "down" | "degraded" }) {
   const toneText = tone === "down" ? "text-down" : tone === "degraded" ? "text-degraded" : "text-fg";
   return (
-    <div className="rounded-lg border border-border bg-surface px-3 py-1.5">
+    <div className="w-full rounded-xl border border-border bg-surface px-4 py-3">
       <div className="text-[10px] uppercase tracking-wide text-muted">{label}</div>
-      <div className={cn("text-sm font-semibold", toneText)}>{value}</div>
+      <div className={cn("mt-1 text-lg font-semibold tabular-nums", toneText)}>{value}</div>
     </div>
   );
 }
