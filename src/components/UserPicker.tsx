@@ -26,6 +26,8 @@ function Avatar({ user, size = 24 }: { user: UserLite; size?: number }) {
       <img
         src={user.avatarUrl}
         alt=""
+        loading="lazy"
+        decoding="async"
         className="shrink-0 rounded-full object-cover"
         style={{ width: size, height: size }}
       />
@@ -65,12 +67,6 @@ export function UserPicker({
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  // Build marker — open the browser console to confirm the deployed bundle is
-  // current. If you don't see this line on Vercel, an old build is being served.
-  useEffect(() => {
-    console.info("[Schbang Pulse] UserPicker build: tagfix-v3 (index-based removal)");
-  }, []);
 
   // Debounce keystrokes before hitting the search API.
   useEffect(() => {
