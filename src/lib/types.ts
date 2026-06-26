@@ -71,8 +71,30 @@ export interface IncidentRow {
   _id: string;
   status: "open" | "resolved";
   startedAt: string;
+  resolvedAt?: string | null;
   durationSec: number | null;
-  monitorId?: { name?: string; url?: string; projectId?: { name?: string } | null };
+  monitorId?: { _id?: string; name?: string; url?: string; projectId?: { name?: string } | null };
+}
+
+export interface IncidentRecommendation {
+  title: string;
+  category?: string;
+  steps: string[];
+}
+
+/** Full incident, as returned by GET /incidents/:id (lazy-loaded on expand). */
+export interface IncidentDetail {
+  _id: string;
+  status: "open" | "resolved";
+  startedAt: string;
+  resolvedAt: string | null;
+  durationSec: number | null;
+  trigger?: { statusCode?: number; error?: string; responseTimeMs?: number } | null;
+  recommendations?: IncidentRecommendation[];
+  rootCauseNotes?: string;
+  resolutionNotes?: string;
+  acknowledgedBy?: string | null;
+  monitorId?: { _id?: string; name?: string; url?: string; type?: string } | null;
 }
 
 export interface UserLite {

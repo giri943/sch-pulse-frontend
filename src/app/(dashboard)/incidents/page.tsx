@@ -61,24 +61,29 @@ export default function IncidentsPage() {
           <EmptyState icon="✅" title="No incidents" description="Nothing to see here — all monitored services are healthy." />
         ) : (
           <ul className="relative space-y-1 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-border">
-            {data.data.map((i) => (
-              <li key={i._id} className="relative flex items-center gap-3 pl-6 py-2.5">
-                <span className="absolute left-0 top-1/2 -translate-y-1/2"><StatusDot status={i.status} pulse /></span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Link href={i.monitorId ? `/monitors/${(i as unknown as { monitorId: { _id?: string } }).monitorId?._id ?? ""}` : "#"} className="text-sm font-medium truncate hover:text-brand">
-                      {i.monitorId?.name ?? "Monitor"}
-                    </Link>
-                    <StatusBadge status={i.status} />
-                  </div>
-                  <div className="text-[11px] text-muted truncate">
-                    {i.monitorId?.projectId?.name && <span className="text-fg/65">{i.monitorId.projectId.name} · </span>}
-                    {i.monitorId?.url ?? ""} · started {new Date(i.startedAt).toLocaleString()}
-                  </div>
-                </div>
-                <span className="text-sm text-muted shrink-0">{duration(i.durationSec)}</span>
-              </li>
-            ))}
+            {data.data.map((i) => {
+              const href = i.monitorId?._id
+                ? `/monitors/${i.monitorId._id}?tab=incidents&incident=${i._id}`
+                : "#";
+              return (
+                <li key={i._id} className="relative pl-6">
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2"><StatusDot status={i.status} pulse /></span>
+                  <Link href={href} className="group flex items-center gap-3 rounded-lg py-2.5 pr-1 transition-colors hover:bg-surface-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium group-hover:text-brand">{i.monitorId?.name ?? "Monitor"}</span>
+                        <StatusBadge status={i.status} />
+                      </div>
+                      <div className="truncate text-[11px] text-muted">
+                        {i.monitorId?.projectId?.name && <span className="text-fg/65">{i.monitorId.projectId.name} · </span>}
+                        {i.monitorId?.url ?? ""} · started {new Date(i.startedAt).toLocaleString()}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-sm text-muted">{duration(i.durationSec)}</span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

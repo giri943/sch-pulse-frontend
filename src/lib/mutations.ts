@@ -231,6 +231,19 @@ export function useDeleteRole() {
   });
 }
 
+/* ── Incidents ── */
+export function useUpdateIncident() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: { rootCauseNotes?: string; resolutionNotes?: string; acknowledge?: boolean } }) =>
+      apiFetch(`/incidents/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: (_d, { id }) => {
+      void qc.invalidateQueries({ queryKey: ["incident", id] });
+      void qc.invalidateQueries({ queryKey: ["incidents"] });
+    },
+  });
+}
+
 export function useTestNotification() {
   return useMutation({
     mutationFn: (id: string) =>

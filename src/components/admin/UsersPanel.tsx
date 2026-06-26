@@ -8,6 +8,7 @@ import { useMe, can, PERM } from "@/lib/permissions";
 import { useToast } from "@/components/Toast";
 import { Button, Card, Field, Input, Modal, Select, StatusBadge } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { isSchbangEmail, EMAIL_DOMAIN_ERROR } from "@/lib/validation";
 
 interface RoleLite {
   id: string;
@@ -226,10 +227,16 @@ function NewUserModal({ open, onClose, roles }: { open: boolean; onClose: () => 
   const [email, setEmail] = useState("");
   const [roleId, setRoleId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!isSchbangEmail(email)) {
+      setEmailError(EMAIL_DOMAIN_ERROR);
+      return;
+    }
+    setEmailError(null);
     try {
       await create.mutateAsync({ name, email, roleId: roleId || roles[0]?.id });
       onClose();
@@ -247,8 +254,17 @@ function NewUserModal({ open, onClose, roles }: { open: boolean; onClose: () => 
         <Field label="Name">
           <Input value={name} onChange={(e) => setName(e.target.value)} required />
         </Field>
-        <Field label="Email">
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <Field label="Email" hint="Must be an @schbang.com address." error={emailError ?? undefined}>
+          <Input
+            type="email"
+            placeholder="name@schbang.com"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (emailError) setEmailError(null);
+            }}
+            required
+          />
         </Field>
         <Field label="Role">
           <Select value={roleId} onChange={(e) => setRoleId(e.target.value)} required>

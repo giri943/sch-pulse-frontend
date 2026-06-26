@@ -1,17 +1,19 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { apiFetch } from "@/lib/api-client";
 import { useMonitorAction, useDeleteMonitor, useTestNotification } from "@/lib/mutations";
+import { useProject } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import type { Monitor, Paginated, IncidentRow, UserLite } from "@/lib/types";
 import { Button, Card, CardTitle, StatusDot, StatusBadge, Tabs, Skeleton, EmptyState, Badge } from "@/components/ui";
 import { MetricCard } from "@/components/MetricCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
+import { IncidentDetailRow } from "@/components/IncidentDetailRow";
 import { WafNotice } from "@/components/WafNotice";
 
 interface Check { _id: string; up: boolean; statusCode?: number; responseTimeMs?: number; error?: string | null; checkedAt: string }
@@ -45,12 +47,31 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [tab, setTab] = useState("overview");
+  // Which incident is expanded, and the one we arrived at via ?incident= (flashed once).
+  const [openIncidentId, setOpenIncidentId] = useState<string | null>(null);
+  const [deepTarget, setDeepTarget] = useState<string | null>(null);
+
+  // Honour deep links (?tab= / ?incident=) after mount — avoids a Suspense
+  // boundary and any SSR/hydration mismatch from reading the URL during render.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const inc = sp.get("incident");
+    const t = sp.get("tab") ?? (inc ? "incidents" : null);
+    if (t) setTab(t);
+    if (inc) {
+      setOpenIncidentId(inc);
+      setDeepTarget(inc);
+    }
+  }, []);
 
   const { data: monitor } = useQuery({ queryKey: ["monitor", id], queryFn: () => apiFetch<Monitor>(`/monitors/${id}`), refetchInterval: 15_000 });
   const { data: summary } = useQuery({ queryKey: ["monitor", id, "summary"], queryFn: () => apiFetch<Summary>(`/monitors/${id}/summary`), refetchInterval: 20_000 });
   const { data: uptime } = useQuery({ queryKey: ["monitor", id, "uptime"], queryFn: () => apiFetch<UptimeSeries>(`/monitors/${id}/uptime?range=24h`), refetchInterval: 30_000 });
   const { data: checks } = useQuery({ queryKey: ["monitor", id, "checks"], queryFn: () => apiFetch<Paginated<Check>>(`/monitors/${id}/checks?limit=20`), refetchInterval: 15_000 });
-  const { data: incidents } = useQuery({ queryKey: ["monitor", id, "incidents"], queryFn: () => apiFetch<Paginated<IncidentRow>>(`/incidents?monitorId=${id}&limit=20`), refetchInterval: 30_000 });
+  const { data: incidents } = useQuery({ queryKey: ["monitor", id, "incidents"], queryFn: () => apiFetch<Paginated<IncidentRow>>(`/incidents?monitorId=${id}&limit=50`), refetchInterval: 30_000 });
+  // Project role decides who can edit incident notes (owner/editor/super).
+  const { data: projectDetail } = useProject(monitor?.project?.id ?? "");
+  const canEditIncident = ["owner", "editor", "super"].includes(projectDetail?.myRole ?? "");
 
   const memberUsers = (monitor?.members ?? []).filter((m) => typeof m === "object") as UserLite[];
   const recipients = [...memberUsers.map((u) => u.email), ...(monitor?.extraAlertEmails ?? [])];
@@ -171,16 +192,16 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
           {!incidents?.data.length ? (
             <EmptyState icon="✅" title="No incidents" description="This monitor hasn't had any downtime." />
           ) : (
-            <ul className="relative space-y-1 before:absolute before:left-[5px] before:top-1 before:bottom-1 before:w-px before:bg-border">
+            <ul className="space-y-1">
               {incidents.data.map((i) => (
-                <li key={i._id} className="relative flex items-start gap-3 pl-5 py-2">
-                  <span className="absolute left-0 top-3"><StatusDot status={i.status} /></span>
-                  <div className="flex-1">
-                    <div className="text-sm">{i.status === "open" ? "🔴 Down" : "🟢 Recovered"}</div>
-                    <div className="text-[11px] text-muted">{new Date(i.startedAt).toLocaleString()}</div>
-                  </div>
-                  <span className="text-xs text-muted">{i.durationSec != null ? `${Math.round(i.durationSec / 60)}m` : "ongoing"}</span>
-                </li>
+                <IncidentDetailRow
+                  key={i._id}
+                  incident={i}
+                  open={openIncidentId === i._id}
+                  onToggle={() => setOpenIncidentId((cur) => (cur === i._id ? null : i._id))}
+                  canEdit={canEditIncident}
+                  deepLinked={deepTarget === i._id}
+                />
               ))}
             </ul>
           )}

@@ -9,6 +9,7 @@ import type {
   ExpiringMonitorItem,
   DiscoverMonitor,
   DiscoverProject,
+  IncidentDetail,
   IncidentRow,
   MyJoinRequest,
   Paginated,
@@ -113,6 +114,36 @@ export const useRecentIncidents = () =>
     queryKey: ["dashboard", "incidents"],
     queryFn: () => apiFetch<IncidentRow[]>("/dashboard/incidents/recent"),
     refetchInterval: 30_000,
+  });
+
+/** A single incident's full detail — lazy-loaded when a row is expanded. */
+export const useIncident = (id: string, enabled = true) =>
+  useQuery({
+    queryKey: ["incident", id],
+    queryFn: () => apiFetch<IncidentDetail>(`/incidents/${id}`),
+    enabled: enabled && !!id,
+  });
+
+/** Currently-open incidents, scoped to the caller — powers the hero "Active incidents" popover. */
+export const useOpenIncidents = () =>
+  useQuery({
+    queryKey: ["incidents", "open"],
+    queryFn: async () =>
+      (await apiFetch<Paginated<IncidentRow>>("/incidents?status=open&limit=50")).data,
+    refetchInterval: 30_000,
+  });
+
+/** Incidents within a window (for the uptime chart overlay), optionally scoped to a project. */
+export const useIncidentsInRange = (projectId?: string) =>
+  useQuery({
+    queryKey: ["incidents", "range", projectId ?? "all"],
+    queryFn: async () =>
+      (
+        await apiFetch<Paginated<IncidentRow>>(
+          `/incidents?limit=100&sort=-startedAt${projectId ? `&projectId=${projectId}` : ""}`,
+        )
+      ).data,
+    refetchInterval: 60_000,
   });
 
 export const useSslExpiring = () =>

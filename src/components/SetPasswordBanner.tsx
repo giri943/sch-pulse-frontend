@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSetPassword } from "@/lib/mutations";
 import { apiFetch, setAccessToken } from "@/lib/api-client";
-import { Button, Field, Input } from "@/components/ui";
+import { Button, Field } from "@/components/ui";
+import { PasswordInput } from "@/components/PasswordInput";
 import { SchbangLogo } from "@/components/SchbangLogo";
 
 /**
@@ -58,10 +59,10 @@ export function SetPasswordGate() {
             label="New password"
             hint="At least 8 characters, with an uppercase letter, a lowercase letter and a number."
           >
-            <Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} required autoFocus />
+            <PasswordInput value={pw} onChange={(e) => setPw(e.target.value)} required autoFocus />
           </Field>
           <Field label="Confirm password">
-            <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+            <PasswordInput value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
           </Field>
           <Button type="submit" disabled={setPassword.isPending} className="w-full">
             {setPassword.isPending ? "Saving…" : "Set password & continue"}

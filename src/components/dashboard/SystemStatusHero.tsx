@@ -1,10 +1,17 @@
 "use client";
 
-import Link from "next/link";
-import { useStatusBoard, useDashboardStats, useSslExpiring, useDomainExpiring } from "@/lib/hooks";
+import { useStatusBoard, useDashboardStats, useSslExpiring, useDomainExpiring, useOpenIncidents } from "@/lib/hooks";
 import { Skeleton } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { EntityPopover, type PopoverItem } from "@/components/EntityPopover";
 import { cn } from "@/lib/cn";
+
+/** Short "Nd / expired" label + urgency tone for a days-remaining value. */
+function dayMeta(d: number | null): { meta: string; metaTone: string } {
+  if (d == null) return { meta: "—", metaTone: "text-muted" };
+  if (d < 0) return { meta: "expired", metaTone: "text-down" };
+  return { meta: `${d}d`, metaTone: d <= 7 ? "text-down" : d <= 30 ? "text-degraded" : "text-muted" };
+}
 
 type Tone = "up" | "degraded" | "down" | "neutral";
 
@@ -25,6 +32,7 @@ export function SystemStatusHero() {
   const { data: dash } = useDashboardStats();
   const { data: ssl } = useSslExpiring();
   const { data: domain } = useDomainExpiring();
+  const { data: openIncidents } = useOpenIncidents();
 
   if (isLoading || !board) return <Skeleton className="h-40 rounded-2xl" />;
 
@@ -73,6 +81,30 @@ export function SystemStatusHero() {
     { n: unknown + paused, v: "--muted" },
   ].filter((s) => s.n > 0);
 
+  // Drill-down lists behind the count chips.
+  const incidentItems: PopoverItem[] = (openIncidents ?? []).map((i) => ({
+    id: i._id,
+    href: i.monitorId?._id ? `/monitors/${i.monitorId._id}?tab=incidents&incident=${i._id}` : "/incidents",
+    title: i.monitorId?.name ?? "Monitor",
+    sub: i.monitorId?.projectId?.name ?? undefined,
+    meta: "down",
+    metaTone: "text-down",
+  }));
+  const domainItems: PopoverItem[] = (domain ?? []).map((x) => ({
+    id: x.monitorId,
+    href: `/monitors/${x.monitorId}?tab=ssl`,
+    title: x.name,
+    sub: x.project ?? undefined,
+    ...dayMeta(x.daysRemaining),
+  }));
+  const sslItems: PopoverItem[] = (ssl ?? []).map((x) => ({
+    id: x.monitorId,
+    href: `/monitors/${x.monitorId}?tab=ssl`,
+    title: x.name,
+    sub: x.project ?? undefined,
+    ...dayMeta(x.daysRemaining),
+  }));
+
   return (
     <section className={cn("rounded-2xl border p-5 transition-colors md:p-6", t.panel)}>
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -120,11 +152,27 @@ export function SystemStatusHero() {
 
           <div className="mt-4 flex flex-wrap gap-2">
             <Chip label="Uptime 30d" value={uptime30d == null ? "—" : `${uptime30d}%`} />
-            <Link href="/incidents" className="rounded-lg transition-transform hover:-translate-y-0.5">
-              <Chip label="Active incidents" value={incidents} tone={incidents > 0 ? "down" : undefined} />
-            </Link>
-            <Chip label="Domain expiring" value={domainCount} tone={expiryTone(soonestDays(domain))} />
-            <Chip label="SSL expiring" value={sslCount} tone={expiryTone(soonestDays(ssl))} />
+            <EntityPopover
+              label="Active incidents"
+              value={incidents}
+              tone={incidents > 0 ? "down" : undefined}
+              items={incidentItems}
+              emptyText="No active incidents"
+            />
+            <EntityPopover
+              label="Domain expiring"
+              value={domainCount}
+              tone={expiryTone(soonestDays(domain))}
+              items={domainItems}
+              emptyText="No domains expiring soon"
+            />
+            <EntityPopover
+              label="SSL expiring"
+              value={sslCount}
+              tone={expiryTone(soonestDays(ssl))}
+              items={sslItems}
+              emptyText="No certificates expiring soon"
+            />
           </div>
         </div>
       </div>

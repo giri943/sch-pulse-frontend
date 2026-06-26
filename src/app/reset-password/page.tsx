@@ -3,6 +3,8 @@
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api-client";
+import { PasswordInput } from "@/components/PasswordInput";
+import { Button, Field } from "@/components/ui";
 
 function ResetForm() {
   const params = useSearchParams();
@@ -26,16 +28,19 @@ function ResetForm() {
     <form onSubmit={onSubmit} className="w-full max-w-sm bg-surface border border-border rounded-xl p-6 space-y-4">
       <div className="text-lg font-semibold">Choose a new password</div>
       {error && <div className="bg-down/15 text-down text-sm rounded-lg px-3 py-2">{error}</div>}
-      <input
-        type="password"
-        placeholder="New password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-brand"
-      />
-      <p className="text-[11px] text-muted">At least 8 characters, with an uppercase letter, a lowercase letter and a number.</p>
-      <button className="w-full bg-brand text-white rounded-lg py-2 text-sm font-medium">Update password</button>
+      <Field
+        label="New password"
+        hint="At least 8 characters, with an uppercase letter, a lowercase letter and a number."
+      >
+        <PasswordInput
+          placeholder="New password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoFocus
+        />
+      </Field>
+      <Button type="submit" className="w-full">Update password</Button>
     </form>
   );
 }
