@@ -52,11 +52,13 @@ export function UserPicker({
   value,
   onChange,
   excludeIds = [],
+  placeholder = "Type @ to find a teammate…",
 }: {
   value: UserLite[];
   onChange: (users: UserLite[]) => void;
   /** User ids to hide from suggestions (e.g. the project owner, who is always alerted). */
   excludeIds?: string[];
+  placeholder?: string;
 }) {
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -68,16 +70,23 @@ export function UserPicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // @-mention behaviour: suggestions appear only when the user is actively
+  // mentioning (typed "@") or typing a query — never a full dump of everyone on
+  // focus. The "@" is stripped before hitting the search API.
+  const query = q.replace(/@/g, "").trim();
+  const triggered = q.includes("@");
+  const shouldSearch = open && (triggered || query.length > 0);
+
   // Debounce keystrokes before hitting the search API.
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQ(q.trim()), 250);
+    const t = setTimeout(() => setDebouncedQ(query), 250);
     return () => clearTimeout(t);
-  }, [q]);
+  }, [query]);
 
   const { data: results, isFetching } = useQuery({
     queryKey: ["users", "search", debouncedQ],
     queryFn: () => apiFetch<UserLite[]>(`/users/search?q=${encodeURIComponent(debouncedQ)}`),
-    enabled: open,
+    enabled: shouldSearch,
     staleTime: 10_000,
   });
 
@@ -153,7 +162,7 @@ export function UserPicker({
     }
   }
 
-  const showMenu = open && rect && typeof document !== "undefined";
+  const showMenu = shouldSearch && rect && typeof document !== "undefined";
 
   return (
     <div ref={wrapRef} className="relative">
@@ -196,7 +205,7 @@ export function UserPicker({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder={value.length ? "" : "Search teammates by name or email…"}
+          placeholder={value.length ? "" : placeholder}
           className="min-w-[140px] flex-1 bg-transparent py-0.5 text-sm outline-none"
         />
       </div>
@@ -213,7 +222,7 @@ export function UserPicker({
             )}
             {!isFetching && suggestions.length === 0 && (
               <div className="px-3 py-2 text-sm text-muted">
-                {debouncedQ ? "No users found" : "Type to search teammates"}
+                {debouncedQ ? "No teammates found" : "Keep typing to find a teammate…"}
               </div>
             )}
             {suggestions.map((u, i) => (

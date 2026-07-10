@@ -279,8 +279,8 @@ export function MonitorFormModal({
             />
           </Field>
         </div>
-        <Field label="Tag users (visibility + alerts)" hint="The project owner is always alerted automatically.">
-          <UserPicker value={members} onChange={setMembers} excludeIds={ownerIds} />
+        <Field label="Tag users (visibility + alerts)" hint="Type @ to tag a teammate. The project owner is always alerted automatically.">
+          <UserPicker value={members} onChange={setMembers} excludeIds={ownerIds} placeholder="Type @ to tag a teammate…" />
         </Field>
         <Field label="Extra alert emails (non-users, comma-separated)">
           <Input value={extraEmails} onChange={(e) => setExtraEmails(e.target.value)} placeholder="client@brand.com" />
