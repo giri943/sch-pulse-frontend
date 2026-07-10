@@ -166,3 +166,11 @@ export const useExpiringMonitors = () =>
 
 export const useChannels = () =>
   useQuery({ queryKey: ["channels"], queryFn: () => apiFetch<Channel[]>("/channels") });
+
+/** Public auth config — which sign-in methods are enabled (Google-only vs break-glass password login). */
+export const useAuthConfig = () =>
+  useQuery({
+    queryKey: ["auth", "config"],
+    queryFn: () => apiFetch<{ passwordLoginEnabled: boolean }>("/auth/config"),
+    staleTime: 60_000,
+  });
