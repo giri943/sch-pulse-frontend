@@ -85,7 +85,7 @@ export function IncidentDetailRow({
           ) : (
             <div className="space-y-4">
               <Timeline started={detail.startedAt} acknowledged={!!detail.acknowledgedBy} resolved={detail.resolvedAt} />
-              <Cause trigger={detail.trigger} />
+              <Cause trigger={detail.trigger} humanized={detail.humanized} />
               {detail.recommendations && detail.recommendations.length > 0 && (
                 <Recommendations items={detail.recommendations} />
               )}
@@ -122,32 +122,49 @@ function Timeline({ started, acknowledged, resolved }: { started: string; acknow
   );
 }
 
-function Cause({ trigger }: { trigger?: { statusCode?: number; error?: string; responseTimeMs?: number } | null }) {
-  if (!trigger || (!trigger.statusCode && !trigger.error && trigger.responseTimeMs == null)) {
+function Cause({
+  trigger,
+  humanized,
+}: {
+  trigger?: { statusCode?: number; error?: string; responseTimeMs?: number; server?: string } | null;
+  humanized?: string;
+}) {
+  const hasTech = !!trigger && (trigger.statusCode != null || !!trigger.error || trigger.responseTimeMs != null || !!trigger.server);
+  if (!hasTech && !humanized) {
     return <Section title="Cause"><p className="text-sm text-muted">No failure detail was captured for this incident.</p></Section>;
   }
   return (
     <Section title="Cause">
-      <dl className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1.5 text-sm">
-        {trigger.statusCode != null && (
-          <>
-            <dt className="text-muted">Status code</dt>
-            <dd className="font-medium text-down tabular-nums">{trigger.statusCode}</dd>
-          </>
-        )}
-        {trigger.error && (
-          <>
-            <dt className="text-muted">Error</dt>
-            <dd className="break-words font-medium">{trigger.error}</dd>
-          </>
-        )}
-        {trigger.responseTimeMs != null && (
-          <>
-            <dt className="text-muted">Response time</dt>
-            <dd className="tabular-nums">{trigger.responseTimeMs}ms</dd>
-          </>
-        )}
-      </dl>
+      {/* Plain-language explanation first; technical detail below for engineers. */}
+      {humanized && <p className="mb-2.5 text-sm">{humanized}</p>}
+      {hasTech && (
+        <dl className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1.5 text-sm">
+          {trigger?.statusCode != null && (
+            <>
+              <dt className="text-muted">Status code</dt>
+              <dd className="font-medium text-down tabular-nums">{trigger.statusCode}</dd>
+            </>
+          )}
+          {trigger?.error && (
+            <>
+              <dt className="text-muted">Error</dt>
+              <dd className="break-words font-medium">{trigger.error}</dd>
+            </>
+          )}
+          {trigger?.responseTimeMs != null && (
+            <>
+              <dt className="text-muted">Response time</dt>
+              <dd className="tabular-nums">{trigger.responseTimeMs}ms</dd>
+            </>
+          )}
+          {trigger?.server && (
+            <>
+              <dt className="text-muted">Reported by</dt>
+              <dd className="break-words font-medium">{trigger.server}</dd>
+            </>
+          )}
+        </dl>
+      )}
     </Section>
   );
 }
