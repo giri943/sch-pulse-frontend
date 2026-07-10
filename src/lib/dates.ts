@@ -20,3 +20,18 @@ export function formatDateTime(iso?: string | Date | null): string {
   const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return `${formatDate(d)}, ${time}`;
 }
+
+/**
+ * Human duration from seconds. Rolls up into days beyond 24h so a long outage
+ * reads "31d 23h 14m" rather than "767h 14m". null → "ongoing".
+ */
+export function formatDuration(sec: number | null | undefined): string {
+  if (sec == null) return "ongoing";
+  if (sec < 60) return `${sec}s`;
+  const totalMin = Math.floor(sec / 60);
+  if (totalMin < 60) return `${totalMin}m`;
+  const totalHours = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  if (totalHours < 24) return `${totalHours}h ${mins}m`;
+  return `${Math.floor(totalHours / 24)}d ${totalHours % 24}h ${mins}m`;
+}

@@ -244,6 +244,16 @@ export function useUpdateIncident() {
   });
 }
 
+/* ── Escalation policy (super admin) ── */
+export function useUpdateEscalationPolicy() {
+  const invalidate = useInvalidate([["settings", "escalation"]]);
+  return useMutation({
+    mutationFn: (body: { enabled?: boolean; afterMinutes?: number; emails?: string[] }) =>
+      apiFetch("/settings/escalation", { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+
 export function useTestNotification() {
   return useMutation({
     mutationFn: (id: string) =>

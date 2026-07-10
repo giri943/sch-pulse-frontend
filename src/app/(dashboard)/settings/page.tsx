@@ -6,16 +6,19 @@ import { PageHeader, Card, CardTitle, Tabs, Badge } from "@/components/ui";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { RolesPanel } from "@/components/admin/RolesPanel";
 import { ChannelsPanel } from "@/components/admin/ChannelsPanel";
+import { EscalationPanel } from "@/components/admin/EscalationPanel";
 
 export default function SettingsPage() {
   const { data: me } = useMe();
   const [tab, setTab] = useState("account");
+  const isSuperAdmin = !!me?.permissions.includes("*");
 
   const tabs = [
     { key: "account", label: "Account" },
     ...(can(me, PERM.USER_READ) ? [{ key: "users", label: "Users" }] : []),
     ...(can(me, PERM.ROLE_READ) ? [{ key: "roles", label: "Roles" }] : []),
     ...(can(me, PERM.CHANNEL_MANAGE) ? [{ key: "channels", label: "Channels" }] : []),
+    ...(isSuperAdmin ? [{ key: "escalation", label: "Escalation" }] : []),
   ];
 
   return (
@@ -26,6 +29,7 @@ export default function SettingsPage() {
       {tab === "users" && can(me, PERM.USER_READ) && <UsersPanel />}
       {tab === "roles" && can(me, PERM.ROLE_READ) && <RolesPanel />}
       {tab === "channels" && can(me, PERM.CHANNEL_MANAGE) && <ChannelsPanel />}
+      {tab === "escalation" && isSuperAdmin && <EscalationPanel />}
     </div>
   );
 }

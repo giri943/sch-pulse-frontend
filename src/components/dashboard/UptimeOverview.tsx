@@ -6,13 +6,7 @@ import { useUptimeOverview, useProjects, useIncidentsInRange } from "@/lib/hooks
 import { Card, Select, Skeleton } from "@/components/ui";
 import type { UptimePoint, IncidentRow } from "@/lib/types";
 import { cn } from "@/lib/cn";
-
-function durShort(sec: number | null): string {
-  if (sec == null) return "ongoing";
-  if (sec < 60) return `${sec}s`;
-  const m = Math.floor(sec / 60);
-  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
-}
+import { formatDuration } from "@/lib/dates";
 
 const RANGES = ["24h", "7d", "30d"] as const;
 type Range = (typeof RANGES)[number];
@@ -255,7 +249,7 @@ function UptimeTip({
             {incidents.slice(0, 4).map((inc) => (
               <div key={inc._id} className="flex items-center justify-between gap-2">
                 <span className="truncate">{inc.monitorId?.name ?? "Monitor"}</span>
-                <span className="shrink-0 text-muted">{durShort(inc.durationSec)}</span>
+                <span className="shrink-0 text-muted">{formatDuration(inc.durationSec)}</span>
               </div>
             ))}
             {incidents.length > 4 && <div className="text-muted">+{incidents.length - 4} more</div>}
