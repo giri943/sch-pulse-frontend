@@ -89,12 +89,14 @@ export interface IncidentDetail {
   startedAt: string;
   resolvedAt: string | null;
   durationSec: number | null;
-  trigger?: { statusCode?: number; error?: string; responseTimeMs?: number } | null;
+  trigger?: { statusCode?: number; error?: string; responseTimeMs?: number; server?: string } | null;
   recommendations?: IncidentRecommendation[];
   rootCauseNotes?: string;
   resolutionNotes?: string;
   acknowledgedBy?: string | null;
   monitorId?: { _id?: string; name?: string; url?: string; type?: string } | null;
+  /** Plain-language explanation of the failure (server-computed). */
+  humanized?: string;
 }
 
 export interface UserLite {
