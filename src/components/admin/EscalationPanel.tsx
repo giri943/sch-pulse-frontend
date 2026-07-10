@@ -5,6 +5,7 @@ import { useEscalationPolicy } from "@/lib/hooks";
 import { useUpdateEscalationPolicy } from "@/lib/mutations";
 import { useToast } from "@/components/Toast";
 import { Button, Card, CardTitle, Field, Input, Skeleton } from "@/components/ui";
+import { NumberInput } from "@/components/NumberInput";
 
 /**
  * Super-admin escalation policy: if an incident stays open past the threshold,
@@ -61,12 +62,12 @@ export function EscalationPanel() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Escalate after (minutes)" hint="How long an incident can stay open before leadership is looped in.">
-            <Input
-              type="number"
+            <NumberInput
               min={1}
               max={1440}
+              fallback={60}
               value={afterMinutes}
-              onChange={(e) => setAfterMinutes(Math.min(1440, Math.max(1, Number(e.target.value) || 1)))}
+              onChange={setAfterMinutes}
               disabled={!enabled}
             />
           </Field>

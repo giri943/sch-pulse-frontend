@@ -20,6 +20,7 @@ import type {
   StatusBoardItem,
   UptimeOverview,
   EscalationPolicy,
+  RcaReminderPolicy,
 } from "./types";
 
 /** Members of a project. */
@@ -173,6 +174,12 @@ export const useEscalationPolicy = () =>
   useQuery({
     queryKey: ["settings", "escalation"],
     queryFn: () => apiFetch<EscalationPolicy>("/settings/escalation"),
+  });
+
+export const useRcaReminderPolicy = () =>
+  useQuery({
+    queryKey: ["settings", "rca-reminder"],
+    queryFn: () => apiFetch<RcaReminderPolicy>("/settings/rca-reminder"),
   });
 
 /** Public auth config — which sign-in methods are enabled (Google-only vs break-glass password login). */

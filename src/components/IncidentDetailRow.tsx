@@ -4,16 +4,21 @@ import { useEffect, useRef, useState } from "react";
 import { useIncident } from "@/lib/hooks";
 import { useUpdateIncident } from "@/lib/mutations";
 import { useToast } from "@/components/Toast";
+import dynamic from "next/dynamic";
 import { StatusDot, Skeleton, Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+
+// Rich-text editor pulls in the full TipTap bundle — load it on demand (only
+// when an incident is expanded for editing) so the monitor page stays light.
+const RichTextEditor = dynamic(() => import("@/components/RichTextEditor").then((m) => m.RichTextEditor), {
+  ssr: false,
+  loading: () => <div className="h-24 animate-pulse rounded-lg border border-border bg-bg" />,
+});
 import { formatDateTime, formatDuration } from "@/lib/dates";
 import type { IncidentRow } from "@/lib/types";
 
 const fmtTime = (iso?: string | null) => formatDateTime(iso);
-
-const textareaCls =
-  "w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20 placeholder:text-muted/60 resize-y min-h-[64px]";
 
 /**
  * One incident in the monitor's Incidents tab. Collapsed: a scannable summary
@@ -201,6 +206,18 @@ function Recommendations({ items }: { items: { title: string; steps: string[] }[
   );
 }
 
+/** Empty when the note is blank or just empty tags/whitespace (rich text is HTML). */
+const isBlankHtml = (html?: string | null) =>
+  !html || html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim().length === 0;
+
+/** Merge any legacy root-cause + resolution notes into one rich-text value. */
+function mergeLegacyNotes(rootCause: string, resolution: string): string {
+  const rc = !isBlankHtml(rootCause);
+  const rn = !isBlankHtml(resolution);
+  if (rc && rn) return `${rootCause}${resolution}`;
+  return rc ? rootCause : rn ? resolution : "";
+}
+
 function Notes({
   id,
   canEdit,
@@ -214,44 +231,49 @@ function Notes({
 }) {
   const update = useUpdateIncident();
   const toast = useToast();
-  const [root, setRoot] = useState(rootCauseNotes);
-  const [resolution, setResolution] = useState(resolutionNotes);
-  const dirty = root !== rootCauseNotes || resolution !== resolutionNotes;
+  // A single "Root cause analysis" field holds the whole write-up as rich text
+  // (HTML). Legacy incidents may have had a separate Resolution note — fold it in
+  // so nothing is lost. We track @-mentioned user ids so the backend can notify
+  // only the newly-added people on save.
+  const initial = mergeLegacyNotes(rootCauseNotes, resolutionNotes);
+  const [content, setContent] = useState(initial);
+  const [mentions, setMentions] = useState<string[]>([]);
+  const dirty = content !== initial;
 
   if (!canEdit) {
-    if (!rootCauseNotes && !resolutionNotes) return null;
+    if (isBlankHtml(initial)) return null;
     return (
-      <Section title="Notes">
-        {rootCauseNotes && <p className="text-sm"><span className="text-muted">Root cause: </span>{rootCauseNotes}</p>}
-        {resolutionNotes && <p className="mt-1 text-sm"><span className="text-muted">Resolution: </span>{resolutionNotes}</p>}
+      <Section title="Root cause analysis">
+        <div className="pulse-editor text-sm" dangerouslySetInnerHTML={{ __html: initial }} />
       </Section>
     );
   }
 
   function save() {
     update.mutate(
-      { id, body: { rootCauseNotes: root, resolutionNotes: resolution } },
+      // Consolidate onto rootCauseNotes and clear any legacy resolution note.
+      { id, body: { rootCauseNotes: content, resolutionNotes: "", rootCauseMentions: mentions } },
       {
-        onSuccess: () => toast.success("Notes saved"),
-        onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't save notes"),
+        onSuccess: () => toast.success("Saved"),
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't save"),
       },
     );
   }
 
   return (
-    <Section title="Notes">
+    <Section title="Root cause analysis">
       <div className="space-y-2.5">
-        <label className="block">
-          <span className="text-[11px] font-medium text-muted">Root cause</span>
-          <textarea value={root} onChange={(e) => setRoot(e.target.value)} placeholder="What caused this?" className={cn(textareaCls, "mt-1")} />
-        </label>
-        <label className="block">
-          <span className="text-[11px] font-medium text-muted">Resolution</span>
-          <textarea value={resolution} onChange={(e) => setResolution(e.target.value)} placeholder="How was it resolved?" className={cn(textareaCls, "mt-1")} />
-        </label>
+        <RichTextEditor
+          value={content}
+          onChange={(html, ids) => {
+            setContent(html);
+            setMentions(ids);
+          }}
+          placeholder="Add the full context — what happened, the root cause, and how it was resolved. Type @ to mention a teammate."
+        />
         <div className="flex justify-end">
           <Button size="sm" onClick={save} disabled={!dirty || update.isPending}>
-            {update.isPending ? "Saving…" : "Save notes"}
+            {update.isPending ? "Saving…" : "Save"}
           </Button>
         </div>
       </div>
