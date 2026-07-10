@@ -97,6 +97,8 @@ export interface IncidentDetail {
   monitorId?: { _id?: string; name?: string; url?: string; type?: string } | null;
   /** Plain-language explanation of the failure (server-computed). */
   humanized?: string;
+  /** Escalation tiers (minutes) already fired — non-empty means it was escalated. */
+  escalationsSent?: number[];
 }
 
 export interface UserLite {
@@ -104,6 +106,12 @@ export interface UserLite {
   name: string;
   email: string;
   avatarUrl?: string | null;
+}
+
+export interface EscalationPolicy {
+  enabled: boolean;
+  afterMinutes: number;
+  emails: string[];
 }
 
 export interface Role {

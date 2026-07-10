@@ -3,14 +3,7 @@
 import Link from "next/link";
 import { useRecentIncidents } from "@/lib/hooks";
 import { Card, CardTitle, StatusDot, Skeleton, EmptyState } from "@/components/ui";
-import { formatDateTime } from "@/lib/dates";
-
-function duration(sec: number | null): string {
-  if (sec == null) return "ongoing";
-  if (sec < 60) return `${sec}s`;
-  const m = Math.floor(sec / 60);
-  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
-}
+import { formatDateTime, formatDuration } from "@/lib/dates";
 
 export function RecentIncidents() {
   const { data, isLoading } = useRecentIncidents();
@@ -45,7 +38,7 @@ export function RecentIncidents() {
                       {i.status === "open" ? "Down" : "Recovered"} · {formatDateTime(i.startedAt)}
                     </div>
                   </div>
-                  <span className="shrink-0 text-xs text-muted">{duration(i.durationSec)}</span>
+                  <span className="shrink-0 text-xs text-muted">{formatDuration(i.durationSec)}</span>
                 </Link>
               </li>
             );

@@ -7,14 +7,8 @@ import { apiFetch } from "@/lib/api-client";
 import { useProjects } from "@/lib/hooks";
 import type { IncidentRow, Paginated } from "@/lib/types";
 import { PageHeader, Card, StatusBadge, StatusDot, Select, Skeleton, EmptyState } from "@/components/ui";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, formatDuration } from "@/lib/dates";
 
-function duration(sec: number | null): string {
-  if (sec == null) return "ongoing";
-  if (sec < 60) return `${sec}s`;
-  const m = Math.floor(sec / 60);
-  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
-}
 
 export default function IncidentsPage() {
   const [status, setStatus] = useState("");
@@ -80,7 +74,7 @@ export default function IncidentsPage() {
                         {i.monitorId?.url ?? ""} · started {formatDateTime(i.startedAt)}
                       </div>
                     </div>
-                    <span className="shrink-0 text-sm text-muted">{duration(i.durationSec)}</span>
+                    <span className="shrink-0 text-sm text-muted">{formatDuration(i.durationSec)}</span>
                   </Link>
                 </li>
               );
