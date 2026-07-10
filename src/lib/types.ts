@@ -114,6 +114,12 @@ export interface EscalationPolicy {
   emails: string[];
 }
 
+export interface RcaReminderPolicy {
+  enabled: boolean;
+  everyMinutes: number;
+  windowMinutes: number;
+}
+
 export interface Role {
   id: string;
   name: string;

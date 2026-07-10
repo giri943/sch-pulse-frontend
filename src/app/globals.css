@@ -152,3 +152,33 @@ html.theme-animating *::after {
 @media (prefers-reduced-motion: reduce) {
   .card-ecg-sweep { animation: none; opacity: 0; }
 }
+
+/* ── Rich-text incident notes editor (TipTap) ────────────────────────── */
+.pulse-editor { outline: none; }
+.pulse-editor p { margin: 0 0 0.4rem; }
+.pulse-editor p:last-child { margin-bottom: 0; }
+.pulse-editor ul { list-style: disc; padding-left: 1.25rem; margin: 0 0 0.4rem; }
+.pulse-editor ol { list-style: decimal; padding-left: 1.25rem; margin: 0 0 0.4rem; }
+.pulse-editor h1 { font-size: 1.1rem; font-weight: 600; margin: 0.3rem 0; }
+.pulse-editor h2 { font-size: 1rem; font-weight: 600; margin: 0.3rem 0; }
+.pulse-editor h3 { font-size: 0.95rem; font-weight: 600; margin: 0.3rem 0; }
+.pulse-editor blockquote { border-left: 2px solid rgb(var(--border)); padding-left: 0.75rem; color: rgb(var(--muted)); margin: 0 0 0.4rem; }
+.pulse-editor code { font-family: ui-monospace, monospace; font-size: 0.85em; background: rgb(var(--surface-2)); padding: 0.1em 0.3em; border-radius: 4px; }
+.pulse-editor pre { background: rgb(var(--surface-2)); border-radius: 6px; padding: 0.6rem 0.75rem; overflow-x: auto; margin: 0 0 0.4rem; }
+.pulse-editor pre code { background: none; padding: 0; font-size: 0.85em; }
+.pulse-editor a { color: rgb(var(--brand)); text-decoration: underline; }
+.pulse-editor hr { border: none; border-top: 1px solid rgb(var(--border)); margin: 0.75rem 0; }
+.pulse-editor img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.25rem 0; }
+.pulse-editor mark { border-radius: 3px; padding: 0.05em 0.15em; }
+/* Checklists */
+.pulse-editor ul[data-type="taskList"] { list-style: none; padding-left: 0.25rem; }
+.pulse-editor ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5rem; }
+.pulse-editor ul[data-type="taskList"] li > label { margin-top: 0.15rem; }
+.pulse-editor ul[data-type="taskList"] li > div { flex: 1 1 auto; }
+.pulse-editor ul[data-type="taskList"] li > div > p { margin: 0; }
+/* Tables */
+.pulse-editor table { border-collapse: collapse; width: 100%; margin: 0.4rem 0; overflow: hidden; }
+.pulse-editor table td, .pulse-editor table th { border: 1px solid rgb(var(--border)); padding: 0.35rem 0.5rem; vertical-align: top; text-align: left; }
+.pulse-editor table th { background: rgb(var(--surface-2)); font-weight: 600; }
+.pulse-editor table .selectedCell:after { background: rgb(var(--brand) / 0.1); content: ""; position: absolute; inset: 0; pointer-events: none; }
+.pulse-editor .tableWrapper { overflow-x: auto; }

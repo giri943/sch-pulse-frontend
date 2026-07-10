@@ -235,7 +235,7 @@ export function useDeleteRole() {
 export function useUpdateIncident() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, body }: { id: string; body: { rootCauseNotes?: string; resolutionNotes?: string; acknowledge?: boolean } }) =>
+    mutationFn: ({ id, body }: { id: string; body: { rootCauseNotes?: string; resolutionNotes?: string; rootCauseMentions?: string[]; resolutionMentions?: string[]; acknowledge?: boolean } }) =>
       apiFetch(`/incidents/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     onSuccess: (_d, { id }) => {
       void qc.invalidateQueries({ queryKey: ["incident", id] });
@@ -250,6 +250,15 @@ export function useUpdateEscalationPolicy() {
   return useMutation({
     mutationFn: (body: { enabled?: boolean; afterMinutes?: number; emails?: string[] }) =>
       apiFetch("/settings/escalation", { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateRcaReminderPolicy() {
+  const invalidate = useInvalidate([["settings", "rca-reminder"]]);
+  return useMutation({
+    mutationFn: (body: { enabled?: boolean; everyMinutes?: number; windowMinutes?: number }) =>
+      apiFetch("/settings/rca-reminder", { method: "PUT", body: JSON.stringify(body) }),
     onSuccess: invalidate,
   });
 }
