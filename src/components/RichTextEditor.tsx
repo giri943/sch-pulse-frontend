@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useEditor, EditorContent, ReactRenderer, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Mention from "@tiptap/extension-mention";
@@ -96,16 +96,20 @@ const MentionList = forwardRef<ListRef, SuggestionProps<UserLite>>((props, ref) 
 });
 MentionList.displayName = "MentionList";
 
-const mentionSuggestion = {
-  items: async ({ query }: { query: string }): Promise<UserLite[]> => {
-    try {
-      const users = await apiFetch<UserLite[]>(`/users/search?q=${encodeURIComponent(query)}`);
-      return users.slice(0, 8);
-    } catch {
-      return [];
-    }
-  },
-  render: () => {
+/** Default mention source — all active users. Callers can pass a narrower one. */
+const defaultMentionSearch = async (query: string): Promise<UserLite[]> => {
+  try {
+    return await apiFetch<UserLite[]>(`/users/search?q=${encodeURIComponent(query)}`);
+  } catch {
+    return [];
+  }
+};
+
+/** Build a Mention suggestion config from a (possibly scoped) user-search fn. */
+function makeMentionSuggestion(search: (query: string) => Promise<UserLite[]>) {
+  return {
+    items: async ({ query }: { query: string }): Promise<UserLite[]> => (await search(query)).slice(0, 8),
+    render: () => {
     let component: ReactRenderer<ListRef, SuggestionProps<UserLite>> | null = null;
     let popup: HTMLDivElement | null = null;
 
@@ -142,8 +146,9 @@ const mentionSuggestion = {
         component = null;
       },
     };
-  },
-};
+    },
+  };
+}
 
 // ── Editor ──────────────────────────────────────────────────────────────────
 /**
@@ -158,13 +163,18 @@ export function RichTextEditor({
   placeholder,
   editable = true,
   className,
+  mentionSearch,
 }: {
   value: string;
   onChange: (html: string, mentionIds: string[]) => void;
   placeholder?: string;
   editable?: boolean;
   className?: string;
+  /** Scoped user-search for @-mentions (e.g. project members only). Defaults to all users. */
+  mentionSearch?: (query: string) => Promise<UserLite[]>;
 }) {
+  // Rebuild the suggestion only when the search source changes (stable per incident).
+  const suggestion = useMemo(() => makeMentionSuggestion(mentionSearch ?? defaultMentionSearch), [mentionSearch]);
   const editor = useEditor({
     editable,
     immediatelyRender: false, // Next.js App Router: avoid SSR hydration mismatch
@@ -184,7 +194,7 @@ export function RichTextEditor({
       TableCell,
       Mention.configure({
         HTMLAttributes: { class: "rounded bg-brand/15 px-1 py-0.5 font-medium text-brand" },
-        suggestion: mentionSuggestion,
+        suggestion,
       }),
     ],
     content: value || "",
