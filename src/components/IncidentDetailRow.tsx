@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIncident } from "@/lib/hooks";
 import { useUpdateIncident } from "@/lib/mutations";
 import { useToast } from "@/components/Toast";
+import { apiFetch } from "@/lib/api-client";
 import dynamic from "next/dynamic";
 import { StatusDot, Skeleton, Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -16,7 +17,7 @@ const RichTextEditor = dynamic(() => import("@/components/RichTextEditor").then(
   loading: () => <div className="h-24 animate-pulse rounded-lg border border-border bg-bg" />,
 });
 import { formatDateTime, formatDuration } from "@/lib/dates";
-import type { IncidentRow } from "@/lib/types";
+import type { IncidentRow, UserLite } from "@/lib/types";
 
 const fmtTime = (iso?: string | null) => formatDateTime(iso);
 
@@ -240,6 +241,12 @@ function Notes({
   const [mentions, setMentions] = useState<string[]>([]);
   const dirty = content !== initial;
 
+  // @-mentions are limited to people on this incident's project (owner + members).
+  const mentionSearch = useCallback(
+    (q: string) => apiFetch<UserLite[]>(`/incidents/${id}/mentionable?q=${encodeURIComponent(q)}`),
+    [id],
+  );
+
   if (!canEdit) {
     if (isBlankHtml(initial)) return null;
     return (
@@ -269,6 +276,7 @@ function Notes({
             setContent(html);
             setMentions(ids);
           }}
+          mentionSearch={mentionSearch}
           placeholder="Add the full context — what happened, the root cause, and how it was resolved. Type @ to mention a teammate."
         />
         <div className="flex justify-end">
