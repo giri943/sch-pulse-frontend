@@ -7,15 +7,9 @@ import { useToast } from "@/components/Toast";
 import { StatusDot, Skeleton, Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, formatDuration } from "@/lib/dates";
 import type { IncidentRow } from "@/lib/types";
 
-function fmtDuration(sec: number | null): string {
-  if (sec == null) return "ongoing";
-  if (sec < 60) return `${sec}s`;
-  const m = Math.floor(sec / 60);
-  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
-}
 const fmtTime = (iso?: string | null) => formatDateTime(iso);
 
 const textareaCls =
@@ -74,7 +68,7 @@ export function IncidentDetailRow({
           <div className="text-sm">{isOpen ? "Down" : "Recovered"}</div>
           <div className="text-[11px] text-muted">{fmtTime(incident.startedAt)}</div>
         </div>
-        <span className="shrink-0 text-xs text-muted">{fmtDuration(incident.durationSec)}</span>
+        <span className="shrink-0 text-xs text-muted">{formatDuration(incident.durationSec)}</span>
         <Icon name="chevron" width={15} height={15} className={cn("shrink-0 text-muted transition-transform", open && "rotate-180")} />
       </button>
 
@@ -84,7 +78,12 @@ export function IncidentDetailRow({
             <Skeleton className="h-24" />
           ) : (
             <div className="space-y-4">
-              <Timeline started={detail.startedAt} acknowledged={!!detail.acknowledgedBy} resolved={detail.resolvedAt} />
+              <Timeline
+                started={detail.startedAt}
+                acknowledged={!!detail.acknowledgedBy}
+                escalated={(detail.escalationsSent?.length ?? 0) > 0}
+                resolved={detail.resolvedAt}
+              />
               <Cause trigger={detail.trigger} humanized={detail.humanized} />
               {detail.recommendations && detail.recommendations.length > 0 && (
                 <Recommendations items={detail.recommendations} />
@@ -103,11 +102,25 @@ export function IncidentDetailRow({
   );
 }
 
-function Timeline({ started, acknowledged, resolved }: { started: string; acknowledged: boolean; resolved: string | null }) {
-  const steps = [
-    { label: "Started", time: started, tone: "text-down" as const },
-    ...(acknowledged ? [{ label: "Acknowledged", time: null, tone: "text-degraded" as const }] : []),
-    { label: resolved ? "Resolved" : "Ongoing", time: resolved, tone: resolved ? ("text-up" as const) : ("text-muted" as const) },
+function Timeline({
+  started,
+  acknowledged,
+  escalated = false,
+  resolved,
+}: {
+  started: string;
+  acknowledged: boolean;
+  escalated?: boolean;
+  resolved: string | null;
+}) {
+  type Step = { label: string; time?: string | null; note?: string; tone: "text-down" | "text-degraded" | "text-up" | "text-muted" };
+  const steps: Step[] = [
+    { label: "Started", time: started, tone: "text-down" },
+    ...(acknowledged ? [{ label: "Acknowledged", note: "acknowledged", tone: "text-degraded" } as Step] : []),
+    ...(escalated ? [{ label: "Escalated", note: "to leadership", tone: "text-down" } as Step] : []),
+    resolved
+      ? { label: "Resolved", time: resolved, tone: "text-up" }
+      : { label: "Ongoing", note: "still down", tone: "text-muted" },
   ];
   return (
     <ol className="space-y-2">
@@ -115,7 +128,7 @@ function Timeline({ started, acknowledged, resolved }: { started: string; acknow
         <li key={s.label} className="flex items-center gap-2.5 text-sm">
           <span className={cn("h-1.5 w-1.5 rounded-full", s.tone === "text-down" ? "bg-down" : s.tone === "text-up" ? "bg-up" : s.tone === "text-degraded" ? "bg-degraded" : "bg-muted")} />
           <span className={cn("w-28 shrink-0 font-medium", s.tone)}>{s.label}</span>
-          <span className="text-muted">{s.time ? fmtTime(s.time) : s.label === "Ongoing" ? "still down" : "—"}</span>
+          <span className="text-muted">{s.time ? fmtTime(s.time) : (s.note ?? "—")}</span>
         </li>
       ))}
     </ol>

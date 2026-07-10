@@ -19,6 +19,7 @@ import type {
   SslExpiringItem,
   StatusBoardItem,
   UptimeOverview,
+  EscalationPolicy,
 } from "./types";
 
 /** Members of a project. */
@@ -166,6 +167,13 @@ export const useExpiringMonitors = () =>
 
 export const useChannels = () =>
   useQuery({ queryKey: ["channels"], queryFn: () => apiFetch<Channel[]>("/channels") });
+
+/** Org escalation policy (super-admin only). */
+export const useEscalationPolicy = () =>
+  useQuery({
+    queryKey: ["settings", "escalation"],
+    queryFn: () => apiFetch<EscalationPolicy>("/settings/escalation"),
+  });
 
 /** Public auth config — which sign-in methods are enabled (Google-only vs break-glass password login). */
 export const useAuthConfig = () =>
