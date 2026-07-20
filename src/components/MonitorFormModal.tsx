@@ -61,6 +61,8 @@ export function MonitorFormModal({
     monitor?.project?.id ?? monitor?.projectId ?? lockProjectId ?? "",
   );
   const [type, setType] = useState<Monitor["type"]>(monitor?.type ?? "website");
+  // What to monitor: full (uptime+SSL+domain), ssl-only, or domain-only.
+  const [scope, setScope] = useState<NonNullable<Monitor["monitoringScope"]>>(monitor?.monitoringScope ?? "full");
   const [url, setUrl] = useState(monitor?.url ?? "");
   const [method, setMethod] = useState(monitor?.method ?? "GET");
   const [intervalSec, setIntervalSec] = useState(monitor?.intervalSec ?? 300);
@@ -108,10 +110,14 @@ export function MonitorFormModal({
   const showProjectField = !lockProjectId || !!monitor;
 
   function buildBody(): MonitorBody {
+    // Preset drives the stored type: SSL-only → "ssl"; Domain-only has no uptime
+    // check so its type is a harmless placeholder; Full uses the chosen type.
+    const effectiveType: Monitor["type"] = scope === "ssl" ? "ssl" : scope === "domain" ? "website" : type;
     return {
       name,
       projectId,
-      type,
+      type: effectiveType,
+      monitoringScope: scope,
       // Default to https:// when the scheme is omitted (e.g. "www.google.com").
       url: /^https?:\/\//i.test(url.trim()) || !url.trim() ? url.trim() : `https://${url.trim()}`,
       method,
@@ -144,8 +150,9 @@ export function MonitorFormModal({
   function validate(): { field: string; message: string } | null {
     if (!name.trim()) return { field: "name", message: "Monitor name is required." };
     if (showProjectField && !projectId) return { field: "project", message: "Please choose a project." };
-    if (!url.trim()) return { field: "url", message: "URL is required." };
-    if (type !== "ssl") {
+    if (!url.trim()) return { field: "url", message: scope === "domain" ? "Domain is required." : "URL is required." };
+    // Method + expected status only apply to Full (uptime) monitors.
+    if (scope === "full") {
       if (!method) return { field: "method", message: "Request method is required." };
       if (!expectedStatusCode || Number.isNaN(Number(expectedStatusCode)))
         return { field: "status", message: "Expected status code is required." };
@@ -241,44 +248,77 @@ export function MonitorFormModal({
             </Select>
           </Field>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Type" required>
-            <Select value={type} onChange={(e) => setType(e.target.value as Monitor["type"])}>
-              <option value="website">Website</option>
-              <option value="api">API</option>
-              <option value="ssl">SSL</option>
-            </Select>
-          </Field>
-          <Field label="Method" required={type !== "ssl"} error={errFor("method")}>
-            <Select id="mf-method" value={method} onChange={(e) => { setMethod(e.target.value); clearErr("method"); }} disabled={type === "ssl"}>
-              {["GET", "POST", "HEAD", "PUT"].map((m) => (
-                <option key={m}>{m}</option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-        <Field label="URL" required error={errFor("url")}>
-          <Input id="mf-url" type="text" value={url} onChange={(e) => { setUrl(e.target.value); clearErr("url"); }} placeholder="britannia.co.in (https:// added if omitted)" />
+        <Field
+          label="What to monitor"
+          required
+          hint={
+            scope === "full"
+              ? "Uptime, SSL certificate, and domain expiry — the full check."
+              : scope === "ssl"
+                ? "Only the SSL certificate's expiry. No uptime checks or downtime alerts."
+                : "Only the domain registration's expiry. No uptime checks or downtime alerts."
+          }
+        >
+          <Select value={scope} onChange={(e) => setScope(e.target.value as NonNullable<Monitor["monitoringScope"]>)}>
+            <option value="full">Full — uptime + SSL + domain</option>
+            <option value="ssl">SSL certificate only</option>
+            <option value="domain">Domain expiry only</option>
+          </Select>
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Interval">
-            <Select value={intervalSec} onChange={(e) => setIntervalSec(Number(e.target.value))}>
-              <option value={60}>1 minute</option>
-              <option value={300}>5 minutes</option>
-              <option value={900}>15 minutes</option>
-              <option value={1800}>30 minutes</option>
-            </Select>
-          </Field>
-          <Field label="Expected status" required={type !== "ssl"} error={errFor("status")}>
-            <Input
-              id="mf-status"
-              type="number"
-              value={expectedStatusCode}
-              onChange={(e) => { setExpectedStatusCode(Number(e.target.value)); clearErr("status"); }}
-              disabled={type === "ssl"}
-            />
-          </Field>
-        </div>
+
+        {scope === "full" && (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Check type" required>
+              <Select value={type} onChange={(e) => setType(e.target.value as Monitor["type"])}>
+                <option value="website">Website</option>
+                <option value="api">API</option>
+              </Select>
+            </Field>
+            <Field label="Method" required error={errFor("method")}>
+              <Select id="mf-method" value={method} onChange={(e) => { setMethod(e.target.value); clearErr("method"); }}>
+                {["GET", "POST", "HEAD", "PUT"].map((m) => (
+                  <option key={m}>{m}</option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+        )}
+        <Field label={scope === "domain" ? "Domain" : "URL"} required error={errFor("url")}>
+          <Input
+            id="mf-url"
+            type="text"
+            value={url}
+            onChange={(e) => { setUrl(e.target.value); clearErr("url"); }}
+            placeholder={scope === "domain" ? "britannia.co.in" : "britannia.co.in (https:// added if omitted)"}
+          />
+        </Field>
+        {scope === "full" && (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Interval">
+              <Select value={intervalSec} onChange={(e) => setIntervalSec(Number(e.target.value))}>
+                <option value={60}>1 minute</option>
+                <option value={300}>5 minutes</option>
+                <option value={900}>15 minutes</option>
+                <option value={1800}>30 minutes</option>
+              </Select>
+            </Field>
+            <Field label="Expected status" required error={errFor("status")}>
+              <Input
+                id="mf-status"
+                type="number"
+                value={expectedStatusCode}
+                onChange={(e) => { setExpectedStatusCode(Number(e.target.value)); clearErr("status"); }}
+              />
+            </Field>
+          </div>
+        )}
+        {scope !== "full" && (
+          <p className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-muted">
+            {scope === "ssl"
+              ? "We'll check this URL's certificate and alert the team as it nears expiry (30/15/7 days)."
+              : "We'll track this domain's registration expiry (via RDAP) and alert the team before it lapses."}
+          </p>
+        )}
         <Field label="Tag users (visibility + alerts)" hint="Type @ to tag a teammate. The project owner is always alerted automatically.">
           <UserPicker value={members} onChange={setMembers} excludeIds={ownerIds} placeholder="Type @ to tag a teammate…" />
         </Field>

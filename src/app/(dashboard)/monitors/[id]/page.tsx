@@ -16,6 +16,7 @@ import { MonitorFormModal } from "@/components/MonitorFormModal";
 import { IncidentDetailRow } from "@/components/IncidentDetailRow";
 import { WafNotice } from "@/components/WafNotice";
 import { formatDate, formatDateTime } from "@/lib/dates";
+import { cn } from "@/lib/cn";
 
 interface Check { _id: string; up: boolean; statusCode?: number; responseTimeMs?: number; error?: string | null; checkedAt: string }
 interface UptimeSeries { series: { t: string; uptime: number | null; avgResponseMs: number | null }[] }
@@ -38,6 +39,13 @@ function sinceDuration(iso: string | null): string {
 }
 const pct = (v: number | null | undefined) => (v == null ? "—" : `${v}%`);
 const dateStr = (iso: string | null) => formatDate(iso);
+
+const daysLeft = (iso?: string | null) => (iso ? Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000) : null);
+const expiryVal = (iso?: string | null) => { const d = daysLeft(iso); return d == null ? "—" : d < 0 ? "Expired" : `${d}d`; };
+const expiryTone = (iso?: string | null): "up" | "down" | "degraded" | "neutral" => {
+  const d = daysLeft(iso);
+  return d == null ? "neutral" : d < 0 ? "down" : d <= 15 ? "degraded" : "up";
+};
 
 export default function MonitorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -74,6 +82,12 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
   const { data: projectDetail } = useProject(monitor?.project?.id ?? "");
   const canEditIncident = ["owner", "editor", "super"].includes(projectDetail?.myRole ?? "");
 
+  const scope = monitor?.monitoringScope ?? "full";
+  // SSL-only / Domain-only monitors run no uptime checks, so drop uptime-only tabs.
+  useEffect(() => {
+    if (scope !== "full" && (tab === "overview" || tab === "checks")) setTab("ssl");
+  }, [scope, tab]);
+
   const memberUsers = (monitor?.members ?? []).filter((m) => typeof m === "object") as UserLite[];
   const recipients = [...memberUsers.map((u) => u.email), ...(monitor?.extraAlertEmails ?? [])];
   const chart = uptime?.series.map((p) => ({ t: new Date(p.t).toLocaleString([], { hour: "2-digit", day: "numeric", month: "short" }), ms: p.avgResponseMs })) ?? [];
@@ -91,10 +105,10 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const tabs = [
-    { key: "overview", label: "Overview" },
+    ...(scope === "full" ? [{ key: "overview", label: "Overview" }] : []),
     { key: "incidents", label: `Incidents${summary?.totalIncidents ? ` (${summary.totalIncidents})` : ""}` },
-    { key: "checks", label: "Recent checks" },
-    { key: "ssl", label: "SSL & config" },
+    ...(scope === "full" ? [{ key: "checks", label: "Recent checks" }] : []),
+    { key: "ssl", label: scope === "domain" ? "Domain & config" : "SSL & config" },
     { key: "alerts", label: "Alerts" },
   ];
 
@@ -125,7 +139,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" size="sm" onClick={runTest} disabled={test.isPending}>🔔 {test.isPending ? "Sending…" : "Test"}</Button>
             <Button variant="ghost" size="sm" onClick={() => action.mutate({ id, action: monitor.enabled ? "pause" : "resume" })}>{monitor.enabled ? "Pause" : "Resume"}</Button>
-            <Button variant="ghost" size="sm" onClick={() => action.mutate({ id, action: "run" }, { onSuccess: () => toast.success("Check scheduled") })}>Run now</Button>
+            <Button variant="ghost" size="sm" onClick={() => action.mutate({ id, action: "run" }, { onSuccess: () => toast.success(scope === "full" ? "Check scheduled" : "Checked") })}>{scope === "full" ? "Run now" : "Check now"}</Button>
             <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>Edit</Button>
             <Button variant="danger" size="sm" onClick={() => { if (confirm(`Delete "${monitor.name}"?`)) { del.mutate(id); router.replace(monitor.project?.id ? `/projects/${monitor.project.id}` : "/projects"); } }}>Delete</Button>
           </div>
@@ -133,16 +147,29 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        <MetricCard label="Uptime 24h" value={pct(summary?.uptime["24h"])} tone="up" />
-        <MetricCard label="Uptime 7d" value={pct(summary?.uptime["7d"])} tone="up" />
-        <MetricCard label="Uptime 30d" value={pct(summary?.uptime["30d"])} tone="up" />
-        <MetricCard label="Avg (24h)" value={summary?.response.avg != null ? `${summary.response.avg}ms` : "—"} />
-        <MetricCard label="Current state" value={summary?.down ? "Down" : "Up"} tone={summary?.down ? "down" : "up"} hint={`for ${sinceDuration(summary?.stateSince ?? null)}`} />
-        <MetricCard label="Incidents" value={summary?.totalIncidents ?? "—"} tone="neutral" />
-      </div>
+      {scope === "full" ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <MetricCard label="Uptime 24h" value={pct(summary?.uptime["24h"])} tone="up" />
+          <MetricCard label="Uptime 7d" value={pct(summary?.uptime["7d"])} tone="up" />
+          <MetricCard label="Uptime 30d" value={pct(summary?.uptime["30d"])} tone="up" />
+          <MetricCard label="Avg (24h)" value={summary?.response.avg != null ? `${summary.response.avg}ms` : "—"} />
+          <MetricCard label="Current state" value={summary?.down ? "Down" : "Up"} tone={summary?.down ? "down" : "up"} hint={`for ${sinceDuration(summary?.stateSince ?? null)}`} />
+          <MetricCard label="Incidents" value={summary?.totalIncidents ?? "—"} tone="neutral" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {scope === "ssl" ? (
+            <MetricCard label="SSL expires in" value={expiryVal(summary?.sslExpiresAt)} tone={expiryTone(summary?.sslExpiresAt)} hint={summary?.sslExpiresAt ? dateStr(summary.sslExpiresAt) : "awaiting first check"} />
+          ) : (
+            <MetricCard label="Domain expires in" value={expiryVal(summary?.domainExpiresAt)} tone={expiryTone(summary?.domainExpiresAt)} hint={summary?.domainExpiresAt ? dateStr(summary.domainExpiresAt) : "awaiting first check"} />
+          )}
+          <MetricCard label="Status" value={monitor ? (monitor.enabled ? monitor.status : "paused") : "—"} tone={monitor?.status === "down" ? "down" : monitor?.status === "operational" ? "up" : "neutral"} />
+          <MetricCard label="Incidents" value={summary?.totalIncidents ?? "—"} tone="neutral" />
+          <MetricCard label="Checked" value={summary?.lastCheckedAt ? formatDate(summary.lastCheckedAt) : "—"} />
+        </div>
+      )}
 
-      {summary?.monitoringSince && (
+      {scope === "full" && summary?.monitoringSince && (
         <p className="-mt-1 text-xs text-muted">
           Monitoring since{" "}
           {formatDate(summary.monitoringSince)}{" "}
@@ -234,41 +261,58 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
       {tab === "ssl" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
-            <CardTitle>Domain &amp; SSL</CardTitle>
-            {summary?.sslExpiresAt ? (
-              <div className="text-sm space-y-1">
-                <div className="text-muted text-xs">SSL certificate valid until</div>
-                <div className="text-lg font-semibold">🔒 {dateStr(summary.sslExpiresAt)}</div>
-                {(() => {
-                  const days = Math.ceil((new Date(summary.sslExpiresAt).getTime() - Date.now()) / 86400000);
-                  const tone = days <= 7 ? "text-down" : days <= 15 ? "text-degraded" : "text-up";
-                  return <div className={`text-xs ${tone}`}>{days} days remaining</div>;
-                })()}
-              </div>
-            ) : (
-              <p className="text-sm text-muted">No SSL details available{monitor && !monitor.url.startsWith("https://") ? " (not an HTTPS URL)." : "."}</p>
-            )}
-            <div className="mt-4 border-t border-border pt-3 text-sm space-y-1">
-              <div className="text-muted text-xs">Domain registration expires</div>
-              {summary?.domainExpiresAt ? (
-                <>
-                  <div className="text-lg font-semibold">🌐 {dateStr(summary.domainExpiresAt)}</div>
+            <CardTitle>{scope === "ssl" ? "SSL certificate" : scope === "domain" ? "Domain registration" : "Domain & SSL"}</CardTitle>
+            {/* SSL section — shown for Full and SSL-only (not Domain-only). */}
+            {scope !== "domain" && (
+              summary?.sslExpiresAt ? (
+                <div className="text-sm space-y-1">
+                  <div className="text-muted text-xs">SSL certificate valid until</div>
+                  <div className="text-lg font-semibold">🔒 {dateStr(summary.sslExpiresAt)}</div>
                   {(() => {
-                    const days = Math.ceil((new Date(summary.domainExpiresAt).getTime() - Date.now()) / 86400000);
+                    const days = Math.ceil((new Date(summary.sslExpiresAt).getTime() - Date.now()) / 86400000);
                     const tone = days <= 7 ? "text-down" : days <= 15 ? "text-degraded" : "text-up";
                     return <div className={`text-xs ${tone}`}>{days} days remaining</div>;
                   })()}
-                </>
+                </div>
               ) : (
-                <div className="text-xs text-muted">Checking… (updates within a day)</div>
-              )}
-            </div>
+                <p className="text-sm text-muted">No SSL details available{monitor && !monitor.url.startsWith("https://") ? " (not an HTTPS URL)." : "."}</p>
+              )
+            )}
+            {/* Domain section — shown for Full and Domain-only (not SSL-only). */}
+            {scope !== "ssl" && (
+              <div className={cn("text-sm space-y-1", scope === "full" && "mt-4 border-t border-border pt-3")}>
+                <div className="text-muted text-xs">Domain registration expires</div>
+                {summary?.domainExpiresAt ? (
+                  <>
+                    <div className="text-lg font-semibold">🌐 {dateStr(summary.domainExpiresAt)}</div>
+                    {(() => {
+                      const days = Math.ceil((new Date(summary.domainExpiresAt).getTime() - Date.now()) / 86400000);
+                      const tone = days <= 7 ? "text-down" : days <= 15 ? "text-degraded" : "text-up";
+                      return <div className={`text-xs ${tone}`}>{days} days remaining</div>;
+                    })()}
+                  </>
+                ) : (
+                  <div className="text-xs text-muted">Checking… (updates within a day)</div>
+                )}
+              </div>
+            )}
           </Card>
           <Card>
             <CardTitle>Configuration</CardTitle>
             {monitor ? (
               <dl className="text-sm space-y-2">
-                {[["Type", monitor.type], ["Method", monitor.method ?? "GET"], ["Interval", `${intervalMin} min`], ["Expected", String(monitor.expectedStatusCode ?? 200)], ["Enabled", monitor.enabled ? "Yes" : "Paused"]].map(([k, v]) => (
+                {[
+                  ["Monitoring", scope === "ssl" ? "SSL certificate only" : scope === "domain" ? "Domain expiry only" : "Full (uptime + SSL + domain)"],
+                  ...(scope === "full"
+                    ? ([
+                        ["Type", monitor.type],
+                        ["Method", monitor.method ?? "GET"],
+                        ["Interval", `${intervalMin} min`],
+                        ["Expected", String(monitor.expectedStatusCode ?? 200)],
+                      ] as [string, string][])
+                    : []),
+                  ["Enabled", monitor.enabled ? "Yes" : "Paused"],
+                ].map(([k, v]) => (
                   <div key={k} className="flex justify-between"><dt className="text-muted">{k}</dt><dd className="capitalize">{v}</dd></div>
                 ))}
               </dl>
