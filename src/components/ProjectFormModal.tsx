@@ -8,14 +8,27 @@ import { useToast } from "@/components/Toast";
 import type { Project } from "@/lib/types";
 import { Button, Field, Input, Modal, Select } from "@/components/ui";
 
+// "kind" is the preset the user picks per inline monitor; it maps to the
+// monitor's type + monitoringScope when we create it.
+type MonitorKind = "website" | "api" | "ssl" | "domain";
+
 interface MonitorRow {
   name: string;
   url: string;
-  type: "website" | "api" | "ssl";
+  kind: MonitorKind;
   expectedStatusCode: string;
 }
 
-const newRow = (): MonitorRow => ({ name: "", url: "", type: "website", expectedStatusCode: "200" });
+const newRow = (): MonitorRow => ({ name: "", url: "", kind: "website", expectedStatusCode: "200" });
+
+/** Map a picked preset to the monitor's stored type + scope. */
+function kindToTypeScope(kind: MonitorKind): { type: "website" | "api" | "ssl"; monitoringScope: "full" | "ssl" | "domain" } {
+  if (kind === "api") return { type: "api", monitoringScope: "full" };
+  if (kind === "ssl") return { type: "ssl", monitoringScope: "ssl" };
+  if (kind === "domain") return { type: "website", monitoringScope: "domain" }; // type unused for domain-only
+  return { type: "website", monitoringScope: "full" };
+}
+const isFullKind = (k: MonitorKind) => k === "website" || k === "api";
 
 /** Common HTTP status codes for the expected-status datalist (typeahead). */
 const STATUS_CODES: [string, string][] = [
@@ -103,15 +116,18 @@ export function ProjectFormModal({
       let failed = 0;
       for (const r of toAdd) {
         const url = withScheme(r.url);
+        const { type, monitoringScope } = kindToTypeScope(r.kind);
         try {
           await createMonitor.mutateAsync({
             name: r.name.trim() || hostOf(url),
             url,
-            type: r.type,
+            type,
+            monitoringScope,
             projectId: proj.id,
             method: "GET",
             intervalSec: 300,
-            expectedStatusCode: Number(r.expectedStatusCode) || 200,
+            // Expected status only applies to Full (uptime) monitors.
+            ...(isFullKind(r.kind) ? { expectedStatusCode: Number(r.expectedStatusCode) || 200 } : {}),
             channels,
             expiresAt: inThreeMonths(),
           });
@@ -161,19 +177,21 @@ export function ProjectFormModal({
               {rows.map((r, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1.3fr_auto_5.5rem_auto] items-center gap-2">
                   <Input value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder="Name (optional)" />
-                  <Input value={r.url} onChange={(e) => setRow(i, { url: e.target.value })} placeholder="https://example.com" />
-                  <Select value={r.type} onChange={(e) => setRow(i, { type: e.target.value as MonitorRow["type"] })} className="w-auto">
+                  <Input value={r.url} onChange={(e) => setRow(i, { url: e.target.value })} placeholder={r.kind === "domain" ? "example.com" : "https://example.com"} />
+                  <Select value={r.kind} onChange={(e) => setRow(i, { kind: e.target.value as MonitorKind })} className="w-auto" title="What to monitor">
                     <option value="website">Website</option>
                     <option value="api">API</option>
-                    <option value="ssl">SSL</option>
+                    <option value="ssl">SSL only</option>
+                    <option value="domain">Domain only</option>
                   </Select>
                   <Input
                     list="http-status-codes"
                     inputMode="numeric"
-                    value={r.expectedStatusCode}
+                    value={isFullKind(r.kind) ? r.expectedStatusCode : ""}
                     onChange={(e) => setRow(i, { expectedStatusCode: e.target.value })}
-                    placeholder="200"
-                    title="Expected status code"
+                    placeholder={isFullKind(r.kind) ? "200" : "—"}
+                    title={isFullKind(r.kind) ? "Expected status code" : "Not applicable for SSL/Domain-only"}
+                    disabled={!isFullKind(r.kind)}
                   />
                   <button
                     type="button"
