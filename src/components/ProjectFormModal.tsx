@@ -7,28 +7,46 @@ import { ApiError } from "@/lib/api-client";
 import { useToast } from "@/components/Toast";
 import type { Project } from "@/lib/types";
 import { Button, Field, Input, Modal, Select } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { cn } from "@/lib/cn";
 
-// "kind" is the preset the user picks per inline monitor; it maps to the
-// monitor's type + monitoringScope when we create it.
-type MonitorKind = "website" | "api" | "ssl" | "domain";
+// Mirrors the standalone monitor form: a scope preset + (for Full) a check type.
+type MonitorScope = "full" | "ssl" | "domain";
 
 interface MonitorRow {
   name: string;
   url: string;
-  kind: MonitorKind;
+  scope: MonitorScope;
+  /** Only used when scope = full. */
+  type: "website" | "api";
   expectedStatusCode: string;
 }
 
-const newRow = (): MonitorRow => ({ name: "", url: "", kind: "website", expectedStatusCode: "200" });
+const newRow = (): MonitorRow => ({ name: "", url: "", scope: "full", type: "website", expectedStatusCode: "200" });
 
-/** Map a picked preset to the monitor's stored type + scope. */
-function kindToTypeScope(kind: MonitorKind): { type: "website" | "api" | "ssl"; monitoringScope: "full" | "ssl" | "domain" } {
-  if (kind === "api") return { type: "api", monitoringScope: "full" };
-  if (kind === "ssl") return { type: "ssl", monitoringScope: "ssl" };
-  if (kind === "domain") return { type: "website", monitoringScope: "domain" }; // type unused for domain-only
-  return { type: "website", monitoringScope: "full" };
+/** Short scope summary for the collapsed accordion header. */
+function scopeSummary(r: MonitorRow): string {
+  if (r.scope === "ssl") return "SSL certificate only";
+  if (r.scope === "domain") return "Domain expiry only";
+  return `Full · ${r.type === "api" ? "API" : "Website"}`;
 }
-const isFullKind = (k: MonitorKind) => k === "website" || k === "api";
+
+/** Compact labeled field for an inline monitor row. */
+function RowField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-medium text-muted">{label}</span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+}
+
+/** Resolve a row to the monitor's stored type + scope (same rules as the monitor form). */
+function rowToTypeScope(r: MonitorRow): { type: "website" | "api" | "ssl"; monitoringScope: MonitorScope } {
+  if (r.scope === "ssl") return { type: "ssl", monitoringScope: "ssl" };
+  if (r.scope === "domain") return { type: "website", monitoringScope: "domain" }; // type unused for domain-only
+  return { type: r.type, monitoringScope: "full" };
+}
 
 /** Common HTTP status codes for the expected-status datalist (typeahead). */
 const STATUS_CODES: [string, string][] = [
@@ -81,13 +99,22 @@ export function ProjectFormModal({
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
   const [rows, setRows] = useState<MonitorRow[]>([newRow()]);
+  // Which monitor accordion item is expanded (-1 = all collapsed).
+  const [openIndex, setOpenIndex] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const setRow = (i: number, patch: Partial<MonitorRow>) =>
     setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
-  const addRow = () => setRows((rs) => [...rs, newRow()]);
-  const removeRow = (i: number) => setRows((rs) => rs.filter((_, idx) => idx !== i));
+  const addRow = () => {
+    setOpenIndex(rows.length); // expand the newly added one
+    setRows((rs) => [...rs, newRow()]);
+  };
+  const removeRow = (i: number) => {
+    setRows((rs) => rs.filter((_, idx) => idx !== i));
+    setOpenIndex((cur) => (cur > i ? cur - 1 : cur === i ? Math.max(0, i - 1) : cur));
+  };
+  const toggleRow = (i: number) => setOpenIndex((cur) => (cur === i ? -1 : i));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -116,7 +143,7 @@ export function ProjectFormModal({
       let failed = 0;
       for (const r of toAdd) {
         const url = withScheme(r.url);
-        const { type, monitoringScope } = kindToTypeScope(r.kind);
+        const { type, monitoringScope } = rowToTypeScope(r);
         try {
           await createMonitor.mutateAsync({
             name: r.name.trim() || hostOf(url),
@@ -127,7 +154,7 @@ export function ProjectFormModal({
             method: "GET",
             intervalSec: 300,
             // Expected status only applies to Full (uptime) monitors.
-            ...(isFullKind(r.kind) ? { expectedStatusCode: Number(r.expectedStatusCode) || 200 } : {}),
+            ...(monitoringScope === "full" ? { expectedStatusCode: Number(r.expectedStatusCode) || 200 } : {}),
             channels,
             expiresAt: inThreeMonths(),
           });
@@ -174,36 +201,84 @@ export function ProjectFormModal({
               ))}
             </datalist>
             <div className="space-y-2">
-              {rows.map((r, i) => (
-                <div key={i} className="grid grid-cols-[1fr_1.3fr_auto_5.5rem_auto] items-center gap-2">
-                  <Input value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder="Name (optional)" />
-                  <Input value={r.url} onChange={(e) => setRow(i, { url: e.target.value })} placeholder={r.kind === "domain" ? "example.com" : "https://example.com"} />
-                  <Select value={r.kind} onChange={(e) => setRow(i, { kind: e.target.value as MonitorKind })} className="w-auto" title="What to monitor">
-                    <option value="website">Website</option>
-                    <option value="api">API</option>
-                    <option value="ssl">SSL only</option>
-                    <option value="domain">Domain only</option>
-                  </Select>
-                  <Input
-                    list="http-status-codes"
-                    inputMode="numeric"
-                    value={isFullKind(r.kind) ? r.expectedStatusCode : ""}
-                    onChange={(e) => setRow(i, { expectedStatusCode: e.target.value })}
-                    placeholder={isFullKind(r.kind) ? "200" : "—"}
-                    title={isFullKind(r.kind) ? "Expected status code" : "Not applicable for SSL/Domain-only"}
-                    disabled={!isFullKind(r.kind)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeRow(i)}
-                    disabled={rows.length === 1}
-                    className="px-1 text-muted hover:text-down disabled:opacity-30"
-                    aria-label="Remove monitor"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {rows.map((r, i) => {
+                const openRow = openIndex === i;
+                const title = r.name.trim() || (r.url.trim() ? hostOf(withScheme(r.url)) : `Monitor ${i + 1}`);
+                return (
+                  <div key={i} className="overflow-hidden rounded-lg border border-border">
+                    {/* Collapsed header — summary + expand/remove */}
+                    <div className="flex items-center gap-2 bg-bg/40 px-2.5 py-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleRow(i)}
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        aria-expanded={openRow}
+                      >
+                        <Icon name="chevron" width={14} height={14} className={cn("shrink-0 text-muted transition-transform", openRow && "rotate-180")} />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">{title}</span>
+                          <span className="block truncate text-[11px] text-muted">
+                            {r.url.trim() || "No URL yet"} · {scopeSummary(r)}
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeRow(i)}
+                        disabled={rows.length === 1}
+                        className="grid h-7 w-7 flex-none place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-down disabled:opacity-30"
+                        aria-label="Remove monitor"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {/* Expanded body — the mini monitor form */}
+                    {openRow && (
+                      <div className="space-y-2 border-t border-border p-3">
+                        <RowField label="Name (optional)">
+                          <Input value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder="Britannia Website" />
+                        </RowField>
+                        <RowField label={r.scope === "domain" ? "Domain" : "URL"}>
+                          <Input
+                            value={r.url}
+                            onChange={(e) => setRow(i, { url: e.target.value })}
+                            placeholder={r.scope === "domain" ? "example.com" : "https://example.com"}
+                          />
+                        </RowField>
+                        <div className="grid grid-cols-2 gap-2">
+                          <RowField label="What to monitor">
+                            <Select value={r.scope} onChange={(e) => setRow(i, { scope: e.target.value as MonitorScope })}>
+                              <option value="full">Full — uptime + SSL + domain</option>
+                              <option value="ssl">SSL certificate only</option>
+                              <option value="domain">Domain expiry only</option>
+                            </Select>
+                          </RowField>
+                          {r.scope === "full" && (
+                            <RowField label="Check type">
+                              <Select value={r.type} onChange={(e) => setRow(i, { type: e.target.value as MonitorRow["type"] })}>
+                                <option value="website">Website</option>
+                                <option value="api">API</option>
+                              </Select>
+                            </RowField>
+                          )}
+                          {r.scope === "full" && (
+                            <RowField label="Expected status">
+                              <Input
+                                list="http-status-codes"
+                                inputMode="numeric"
+                                value={r.expectedStatusCode}
+                                onChange={(e) => setRow(i, { expectedStatusCode: e.target.value })}
+                                placeholder="200"
+                              />
+                            </RowField>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <button type="button" onClick={addRow} className="mt-2 text-xs text-brand hover:underline">
               + Add another monitor
