@@ -7,12 +7,16 @@ import { apiFetch } from "@/lib/api-client";
 import { useProjects } from "@/lib/hooks";
 import type { IncidentRow, Paginated } from "@/lib/types";
 import { PageHeader, Card, StatusBadge, StatusDot, Select, Skeleton, EmptyState } from "@/components/ui";
+import { ViewToggle } from "@/components/ViewToggle";
+import { IncidentsTable } from "@/components/IncidentsTable";
+import { useViewPreference } from "@/lib/useViewPreference";
 import { formatDateTime, formatDuration } from "@/lib/dates";
 
 
 export default function IncidentsPage() {
   const [status, setStatus] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [view, setView] = useViewPreference("incidents");
   const { data: projects } = useProjects();
   const { data, isLoading } = useQuery({
     queryKey: ["incidents", status, projectId],
@@ -43,18 +47,25 @@ export default function IncidentsPage() {
               <option value="open">Open</option>
               <option value="resolved">Resolved</option>
             </Select>
+            <ViewToggle value={view} onChange={setView} />
           </div>
         }
       />
 
-      <Card>
-        {isLoading ? (
+      {isLoading ? (
+        <Card>
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
           </div>
-        ) : !data?.data.length ? (
+        </Card>
+      ) : !data?.data.length ? (
+        <Card>
           <EmptyState icon="✅" title="No incidents" description="Nothing to see here — all monitored services are healthy." />
-        ) : (
+        </Card>
+      ) : view === "table" ? (
+        <IncidentsTable incidents={data.data} />
+      ) : (
+        <Card>
           <ul className="relative space-y-1 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-border">
             {data.data.map((i) => {
               const href = i.monitorId?._id
@@ -80,8 +91,8 @@ export default function IncidentsPage() {
               );
             })}
           </ul>
-        )}
-      </Card>
+        </Card>
+      )}
     </div>
   );
 }

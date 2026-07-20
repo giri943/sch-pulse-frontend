@@ -13,6 +13,9 @@ import { MonitorCard } from "@/components/MonitorCard";
 import { ArchivedMonitorCard } from "@/components/ArchivedMonitorCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
 import { ProjectMembersPanel } from "@/components/ProjectMembersPanel";
+import { ViewToggle } from "@/components/ViewToggle";
+import { MonitorsTable } from "@/components/MonitorsTable";
+import { useViewPreference } from "@/lib/useViewPreference";
 import { cn } from "@/lib/cn";
 import type { Monitor, Paginated } from "@/lib/types";
 
@@ -28,6 +31,7 @@ export default function ProjectDetailPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [type, setType] = useState("all");
+  const [view, setView] = useViewPreference("monitors");
 
   const canCreate = can(me, PERM.MONITOR_CREATE);
   const canManage =
@@ -142,6 +146,7 @@ export default function ProjectDetailPage() {
           <option value="paused">Paused</option>
           <option value="archived">Archived</option>
         </Select>
+        <ViewToggle value={view} onChange={setView} />
       </div>
 
       {isArchived ? (
@@ -177,6 +182,8 @@ export default function ProjectDetailPage() {
             action={canCreate && !all.length ? <Button onClick={() => { setEditing(null); setOpen(true); }}>+ New Monitor</Button> : undefined}
           />
         </div>
+      ) : view === "table" ? (
+        <MonitorsTable monitors={monitors} canManage={canManage} onEdit={(mm) => { setEditing(mm); setOpen(true); }} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-3">
           {monitors.map((m) => (
