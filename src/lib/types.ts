@@ -203,6 +203,7 @@ export interface Monitor {
   _id: string;
   name: string;
   type: "website" | "api" | "ssl";
+  monitoringScope?: "full" | "ssl" | "domain";
   url: string;
   projectId?: string | null;
   project?: ProjectLite | null;
@@ -227,6 +228,9 @@ export interface Monitor {
   /** Firewall detected in front of this target, if any. */
   waf?: WafVendor | null;
   wafDetectedAt?: string | null;
+  /** Certificate / domain-registration expiry (used by SSL-only / Domain-only cards). */
+  sslExpiresAt?: string | null;
+  domainExpiresAt?: string | null;
 }
 
 export type Classification =
