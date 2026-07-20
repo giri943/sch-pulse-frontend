@@ -13,6 +13,9 @@ import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { initials, projectTint } from "@/lib/projectVisual";
 import { ProjectPulse } from "@/components/ProjectPulse";
+import { ViewToggle } from "@/components/ViewToggle";
+import { ProjectsTable } from "@/components/ProjectsTable";
+import { useViewPreference } from "@/lib/useViewPreference";
 import type { Project } from "@/lib/types";
 
 export default function ProjectsPage() {
@@ -32,6 +35,12 @@ export default function ProjectsPage() {
   const canCreate = can(me, PERM.PROJECT_CREATE);
   const canUpdate = can(me, PERM.PROJECT_UPDATE);
   const canDelete = can(me, PERM.PROJECT_DELETE);
+  const [view, setView] = useViewPreference("projects");
+
+  const removeProject = (p: Project) => {
+    if (confirm(`Delete "${p.name}"? This permanently deletes the project and all its monitors.`))
+      del.mutate(p.id, { onSuccess: () => toast.success("Project deleted") });
+  };
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useProjectsInfinite(dq);
   const projects = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
@@ -70,11 +79,14 @@ export default function ProjectsPage() {
         }
       />
 
-      <div className="relative max-w-sm">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
-          <Icon name="search" width={15} height={15} />
-        </span>
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search projects…" className="pl-9" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="relative w-full max-w-sm">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+            <Icon name="search" width={15} height={15} />
+          </span>
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search projects…" className="pl-9" />
+        </div>
+        <ViewToggle value={view} onChange={setView} />
       </div>
 
       {isLoading ? (
@@ -90,6 +102,18 @@ export default function ProjectsPage() {
             action={canCreate && !dq ? <Button onClick={() => { setEditing(null); setOpen(true); }}>+ New Project</Button> : undefined}
           />
         </div>
+      ) : view === "table" ? (
+        <>
+          <ProjectsTable
+            projects={projects}
+            canUpdate={canUpdate}
+            canDelete={canDelete}
+            onEdit={(p) => { setEditing(p); setOpen(true); }}
+            onDelete={removeProject}
+          />
+          <div ref={sentinel} className="h-8" />
+          {isFetchingNextPage && <p className="text-center text-xs text-muted">Loading more…</p>}
+        </>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-3">
