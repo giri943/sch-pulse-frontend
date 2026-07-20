@@ -6,6 +6,7 @@ import { apiFetch } from "./api-client";
 export interface MonitorBody {
   name: string;
   type: "website" | "api" | "ssl";
+  monitoringScope?: "full" | "ssl" | "domain";
   url: string;
   projectId?: string;
   method?: string;

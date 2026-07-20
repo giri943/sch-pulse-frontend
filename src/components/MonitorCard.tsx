@@ -23,6 +23,29 @@ function ago(iso?: string): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+/** Whole days from now until `iso` (negative = already past). */
+function daysUntil(iso?: string | null): number | null {
+  if (!iso) return null;
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+}
+
+/** "in 34d" / "in 1d" / "today" / "expired". */
+function expiryLabel(iso?: string | null): string {
+  const d = daysUntil(iso);
+  if (d == null) return "—";
+  if (d < 0) return "expired";
+  if (d === 0) return "today";
+  return `in ${d}d`;
+}
+
+const expiryTone = (iso?: string | null): string => {
+  const d = daysUntil(iso);
+  if (d == null) return "text-muted";
+  if (d < 0) return "text-down";
+  if (d <= 15) return "text-degraded";
+  return "text-up";
+};
+
 export function MonitorCard({
   monitor: m,
   canManage,
@@ -43,6 +66,10 @@ export function MonitorCard({
   const lat = m.lastResponseTimeMs;
   const latTone = lat == null ? "text-muted" : lat < 400 ? "text-up" : lat < 1000 ? "text-fg" : "text-degraded";
   const uptimeTone = m.uptime24h == null ? "text-muted" : m.uptime24h >= 99.5 ? "text-up" : m.uptime24h >= 95 ? "text-degraded" : "text-down";
+  // SSL-only / Domain-only monitors don't run uptime checks — show expiry instead.
+  const scope = m.monitoringScope ?? "full";
+  const scopeLabel = scope === "ssl" ? "SSL only" : scope === "domain" ? "Domain only" : m.type;
+  const scopeIcon = scope === "ssl" ? "shield" : scope === "domain" ? "globe" : TYPE_ICON[m.type];
 
   return (
     <div
@@ -69,20 +96,32 @@ export function MonitorCard({
         </Link>
         <div className="flex flex-none flex-col items-end gap-1">
           <Badge tone="neutral">
-            <Icon name={TYPE_ICON[m.type]} width={11} height={11} className="mr-1" />
-            {m.type}
+            <Icon name={scopeIcon} width={11} height={11} className="mr-1" />
+            {scopeLabel}
           </Badge>
           <WafBadge monitor={m} />
         </div>
       </div>
 
-      <MonitorSparkline points={m.spark ?? []} color={color} />
-
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <Stat label="Uptime 24h" value={m.uptime24h == null ? "—" : `${m.uptime24h}%`} tone={uptimeTone} />
-        <Stat label="Latency" value={lat != null ? `${lat}ms` : "—"} tone={latTone} />
-        <Stat label="Checked" value={ago(m.lastCheckedAt)} tone="text-fg" />
-      </div>
+      {scope === "full" ? (
+        <>
+          <MonitorSparkline points={m.spark ?? []} color={color} />
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <Stat label="Uptime 24h" value={m.uptime24h == null ? "—" : `${m.uptime24h}%`} tone={uptimeTone} />
+            <Stat label="Latency" value={lat != null ? `${lat}ms` : "—"} tone={latTone} />
+            <Stat label="Checked" value={ago(m.lastCheckedAt)} tone="text-fg" />
+          </div>
+        </>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 text-center">
+          {scope === "ssl" ? (
+            <Stat label="Certificate" value={expiryLabel(m.sslExpiresAt)} tone={expiryTone(m.sslExpiresAt)} />
+          ) : (
+            <Stat label="Domain" value={expiryLabel(m.domainExpiresAt)} tone={expiryTone(m.domainExpiresAt)} />
+          )}
+          <Stat label="Checked" value={ago(m.lastCheckedAt)} tone="text-fg" />
+        </div>
+      )}
 
       {canManage && (
         <div className="flex items-center gap-1.5 border-t border-border pt-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
