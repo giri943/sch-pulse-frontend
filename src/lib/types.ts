@@ -156,6 +156,8 @@ export interface Project {
   monitorCount: number;
   downCount: number;
   myRole?: EffectiveProjectRole; // only on GET /projects/:id
+  owner?: UserLite | null; // primary owner (on the list response)
+  members?: UserLite[]; // all project members (on the list response)
 }
 
 export interface ProjectMemberRow {

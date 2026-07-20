@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Icon } from "@/components/icons";
+import { Avatar, AvatarStack } from "@/components/Avatars";
 import { initials, projectTint } from "@/lib/projectVisual";
 import type { Project } from "@/lib/types";
 
@@ -41,6 +42,26 @@ export function ProjectsTable({
           </div>
         );
       },
+    },
+    {
+      key: "owner",
+      header: "Owner",
+      sortValue: (p) => (p.owner?.name ?? "").toLowerCase(),
+      render: (p) =>
+        p.owner ? (
+          <div className="flex items-center gap-2">
+            <Avatar person={p.owner} />
+            <span className="truncate">{p.owner.name || p.owner.email}</span>
+          </div>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
+    },
+    {
+      key: "members",
+      header: "Members",
+      sortValue: (p) => p.members?.length ?? 0,
+      render: (p) => <AvatarStack people={p.members ?? []} />,
     },
     {
       key: "monitors",
