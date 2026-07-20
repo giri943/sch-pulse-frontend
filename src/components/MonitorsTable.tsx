@@ -4,11 +4,16 @@ import { useRouter } from "next/navigation";
 import { DataTable, type Column } from "@/components/DataTable";
 import { StatusBadge, Badge, Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { AvatarStack } from "@/components/Avatars";
 import { useMonitorAction, useDeleteMonitor } from "@/lib/mutations";
 import { useToast } from "@/components/Toast";
 import { statusColor, statusRank } from "@/lib/status";
 import { ago, expiryLabel, expiryTone } from "@/lib/monitorDisplay";
-import type { Monitor } from "@/lib/types";
+import type { Monitor, UserLite } from "@/lib/types";
+
+/** Tagged users (populated members) on a monitor's alerts. */
+const alertMembers = (m: Monitor): UserLite[] =>
+  (m.members ?? []).filter((x): x is UserLite => typeof x === "object" && x !== null);
 
 const kindLabel = (m: Monitor): string => {
   const scope = m.monitoringScope ?? "full";
@@ -79,6 +84,26 @@ export function MonitorsTable({
       render: (m) => {
         const iso = (m.monitoringScope ?? "full") === "domain" ? m.domainExpiresAt : m.sslExpiresAt;
         return <span className={expiryTone(iso)}>{expiryLabel(iso)}</span>;
+      },
+    },
+    {
+      key: "alerts",
+      header: "Alerts",
+      sortValue: (m) => alertMembers(m).length + (m.extraAlertEmails?.length ?? 0),
+      render: (m) => {
+        const people = alertMembers(m);
+        const extra = m.extraAlertEmails?.length ?? 0;
+        if (!people.length && !extra) return <span className="text-muted">—</span>;
+        return (
+          <div className="flex items-center gap-1.5">
+            <AvatarStack people={people} />
+            {extra > 0 && (
+              <span className="text-[11px] text-muted" title={m.extraAlertEmails?.join(", ")}>
+                +{extra} email{extra === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+        );
       },
     },
     {
