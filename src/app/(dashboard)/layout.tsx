@@ -9,6 +9,7 @@ import { SchbangLogo } from "@/components/SchbangLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Icon } from "@/components/icons";
 import { useMe } from "@/lib/permissions";
+import { useRealtimeSync } from "@/lib/useRealtimeSync";
 import { cn } from "@/lib/cn";
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -57,6 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: me } = useMe();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [ready, setReady] = useState(false);
+  useRealtimeSync(); // live push-to-invalidate updates across the app
 
   useEffect(() => {
     if (!getAccessToken()) router.replace("/login");

@@ -120,6 +120,28 @@ export interface RcaReminderPolicy {
   windowMinutes: number;
 }
 
+export interface DeployToken {
+  id: string;
+  name: string;
+  prefix: string;
+  lastUsedAt?: string | null;
+  createdAt?: string | null;
+}
+
+export interface MaintenanceWindow {
+  _id: string;
+  scope: "monitor" | "project";
+  monitorId?: string | null;
+  projectId?: string | null;
+  startAt: string;
+  endAt: string;
+  reason: string;
+  proofUrl?: string | null;
+  source: "manual" | "deploy-token";
+  canceledAt?: string | null;
+  createdAt: string;
+}
+
 export interface Role {
   id: string;
   name: string;

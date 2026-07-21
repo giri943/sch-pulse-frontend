@@ -264,6 +264,70 @@ export function useUpdateRcaReminderPolicy() {
   });
 }
 
+export function useUpdateMaintenancePolicy() {
+  const invalidate = useInvalidate([["settings", "maintenance"]]);
+  return useMutation({
+    mutationFn: (body: { defaultDurationMinutes?: number }) =>
+      apiFetch("/settings/maintenance", { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+
+export interface MaintenanceBody {
+  scope: "monitor" | "project";
+  monitorId?: string;
+  projectId?: string;
+  startAt?: string;
+  durationMinutes?: number;
+  reason?: string;
+  reasonMentions?: string[];
+  proofKey?: string;
+}
+
+export function useCreateMaintenance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: MaintenanceBody) => apiFetch("/maintenance", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["maintenance"] });
+      void qc.invalidateQueries({ queryKey: ["monitor"] });
+      void qc.invalidateQueries({ queryKey: ["monitors"] });
+    },
+  });
+}
+
+export function useCancelMaintenance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/maintenance/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["maintenance"] });
+      void qc.invalidateQueries({ queryKey: ["monitor"] });
+      void qc.invalidateQueries({ queryKey: ["monitors"] });
+    },
+  });
+}
+
+export function useCreateDeployToken(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name?: string }) =>
+      apiFetch<{ id: string; name: string; prefix: string; token: string }>(`/projects/${projectId}/deploy-tokens`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["deploy-tokens", projectId] }),
+  });
+}
+
+export function useRevokeDeployToken(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/deploy-tokens/${id}`, { method: "DELETE" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["deploy-tokens", projectId] }),
+  });
+}
+
 export function useTestNotification() {
   return useMutation({
     mutationFn: (id: string) =>

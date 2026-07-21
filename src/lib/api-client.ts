@@ -1,4 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+/** Public API base — used to build stable, auth-free asset URLs (e.g. uploaded images). */
+export const apiBaseUrl = API_URL;
 
 let accessToken: string | null = null;
 

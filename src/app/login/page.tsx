@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, setAccessToken } from "@/lib/api-client";
 import { useAuthConfig } from "@/lib/hooks";
+import { isAllowedEmail, emailDomainError } from "@/lib/validation";
 import { SchbangLogo } from "@/components/SchbangLogo";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LoginIntro } from "@/components/LoginIntro";
 import { Button, Field, Input } from "@/components/ui";
 import { PasswordInput } from "@/components/PasswordInput";
-import { isSchbangEmail, EMAIL_DOMAIN_ERROR } from "@/lib/validation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,8 +27,9 @@ export default function LoginPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!isSchbangEmail(email)) {
-      setError(EMAIL_DOMAIN_ERROR);
+    // Enforce the org domain in prod (nice UX); dev allows any email for testing.
+    if (authCfg?.emailDomainEnforced && !isAllowedEmail(email, authCfg.allowedDomain)) {
+      setError(emailDomainError(authCfg.allowedDomain));
       return;
     }
     setLoading(true);
