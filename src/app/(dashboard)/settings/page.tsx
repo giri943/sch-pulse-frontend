@@ -8,6 +8,7 @@ import { RolesPanel } from "@/components/admin/RolesPanel";
 import { ChannelsPanel } from "@/components/admin/ChannelsPanel";
 import { EscalationPanel } from "@/components/admin/EscalationPanel";
 import { RcaReminderPanel } from "@/components/admin/RcaReminderPanel";
+import { MaintenanceSettingsPanel } from "@/components/admin/MaintenanceSettingsPanel";
 
 export default function SettingsPage() {
   const { data: me } = useMe();
@@ -21,6 +22,7 @@ export default function SettingsPage() {
     ...(can(me, PERM.CHANNEL_MANAGE) ? [{ key: "channels", label: "Channels" }] : []),
     ...(isSuperAdmin ? [{ key: "escalation", label: "Escalation" }] : []),
     ...(isSuperAdmin ? [{ key: "rca", label: "RCA reminders" }] : []),
+    ...(isSuperAdmin ? [{ key: "maintenance", label: "Maintenance" }] : []),
   ];
 
   return (
@@ -33,6 +35,7 @@ export default function SettingsPage() {
       {tab === "channels" && can(me, PERM.CHANNEL_MANAGE) && <ChannelsPanel />}
       {tab === "escalation" && isSuperAdmin && <EscalationPanel />}
       {tab === "rca" && isSuperAdmin && <RcaReminderPanel />}
+      {tab === "maintenance" && isSuperAdmin && <MaintenanceSettingsPanel />}
     </div>
   );
 }

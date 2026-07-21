@@ -32,7 +32,10 @@ export function useMe() {
     queryKey: ["me"],
     queryFn: () => apiFetch<Me>("/auth/me"),
     enabled: typeof window !== "undefined" && !!getAccessToken(),
-    staleTime: 60_000,
+    // Poll so a role/permission change (made by an admin) reflects for the
+    // affected user within a cycle — not only after a manual refresh.
+    staleTime: 20_000,
+    refetchInterval: 30_000,
   });
 }
 

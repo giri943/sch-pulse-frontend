@@ -30,6 +30,15 @@ function collectMentionIds(editor: Editor): string[] {
   return [...new Set(ids)];
 }
 
+/** All image srcs currently in the document (to detect removals). */
+function collectImageSrcs(editor: Editor): string[] {
+  const srcs: string[] = [];
+  editor.state.doc.descendants((node) => {
+    if (node.type.name === "image" && node.attrs.src) srcs.push(String(node.attrs.src));
+  });
+  return srcs;
+}
+
 // ── @-mention suggestion dropdown ──────────────────────────────────────────
 interface ListRef {
   onKeyDown: (props: SuggestionKeyDownProps) => boolean;
@@ -105,10 +114,12 @@ const defaultMentionSearch = async (query: string): Promise<UserLite[]> => {
   }
 };
 
-/** Build a Mention suggestion config from a (possibly scoped) user-search fn. */
-function makeMentionSuggestion(search: (query: string) => Promise<UserLite[]>) {
+/** Build a Mention suggestion config from a getter for the current search fn
+ *  (a getter, not the fn itself, so it always uses the latest — the editor is
+ *  created once but the scoped search may arrive after an async load). */
+function makeMentionSuggestion(getSearch: () => (query: string) => Promise<UserLite[]>) {
   return {
-    items: async ({ query }: { query: string }): Promise<UserLite[]> => (await search(query)).slice(0, 8),
+    items: async ({ query }: { query: string }): Promise<UserLite[]> => (await getSearch()(query)).slice(0, 8),
     render: () => {
     let component: ReactRenderer<ListRef, SuggestionProps<UserLite>> | null = null;
     let popup: HTMLDivElement | null = null;
@@ -164,6 +175,8 @@ export function RichTextEditor({
   editable = true,
   className,
   mentionSearch,
+  onImageUpload,
+  onImageRemove,
 }: {
   value: string;
   onChange: (html: string, mentionIds: string[]) => void;
@@ -172,9 +185,25 @@ export function RichTextEditor({
   className?: string;
   /** Scoped user-search for @-mentions (e.g. project members only). Defaults to all users. */
   mentionSearch?: (query: string) => Promise<UserLite[]>;
+  /** When set, images can be pasted/dropped/picked and are uploaded via this fn, which returns the src to embed. */
+  onImageUpload?: (file: File) => Promise<string | null>;
+  /** Called with an image's src when it's removed from the editor (for S3 cleanup). */
+  onImageRemove?: (src: string) => void;
 }) {
-  // Rebuild the suggestion only when the search source changes (stable per incident).
-  const suggestion = useMemo(() => makeMentionSuggestion(mentionSearch ?? defaultMentionSearch), [mentionSearch]);
+  const editorRef = useRef<Editor | null>(null);
+  // Keep the latest search fn in a ref so the (once-created) editor always uses it.
+  const mentionSearchRef = useRef(mentionSearch ?? defaultMentionSearch);
+  mentionSearchRef.current = mentionSearch ?? defaultMentionSearch;
+  const suggestion = useMemo(() => makeMentionSuggestion(() => mentionSearchRef.current), []);
+  // Track image srcs to detect removals between updates.
+  const prevImagesRef = useRef<Set<string>>(new Set());
+
+  const insertUploaded = async (file: File) => {
+    if (!onImageUpload) return;
+    const src = await onImageUpload(file);
+    if (src) editorRef.current?.chain().focus().setImage({ src }).run();
+  };
+
   const editor = useEditor({
     editable,
     immediatelyRender: false, // Next.js App Router: avoid SSR hydration mismatch
@@ -200,9 +229,39 @@ export function RichTextEditor({
     content: value || "",
     editorProps: {
       attributes: { class: "pulse-editor min-h-[96px] px-3 py-2 text-sm leading-relaxed outline-none" },
+      // Paste or drop an image (e.g. a snipped screenshot) → upload + embed.
+      handlePaste: (_view, event) => {
+        if (!onImageUpload) return false;
+        const img = Array.from(event.clipboardData?.files ?? []).find((f) => f.type.startsWith("image/"));
+        if (!img) return false;
+        event.preventDefault();
+        void insertUploaded(img);
+        return true;
+      },
+      handleDrop: (_view, event) => {
+        if (!onImageUpload) return false;
+        const dt = (event as DragEvent).dataTransfer;
+        const img = Array.from(dt?.files ?? []).find((f) => f.type.startsWith("image/"));
+        if (!img) return false;
+        event.preventDefault();
+        void insertUploaded(img);
+        return true;
+      },
     },
-    onUpdate: ({ editor }) => onChange(editor.getHTML(), collectMentionIds(editor)),
+    onCreate: ({ editor }) => {
+      prevImagesRef.current = new Set(collectImageSrcs(editor));
+    },
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML(), collectMentionIds(editor));
+      if (onImageRemove) {
+        const current = new Set(collectImageSrcs(editor));
+        for (const src of prevImagesRef.current) if (!current.has(src)) onImageRemove(src);
+        prevImagesRef.current = current;
+      }
+    },
   });
+
+  editorRef.current = editor;
 
   // Sync external value changes (e.g. after a save refetch) without stealing the
   // caret from someone mid-edit.
@@ -210,6 +269,9 @@ export function RichTextEditor({
     if (!editor) return;
     if (value !== editor.getHTML() && !editor.isFocused) {
       editor.commands.setContent(value || "", false);
+      // Resync tracked images so a later edit doesn't "remove" (and delete) an
+      // image that just left the editor because the value was reset externally.
+      prevImagesRef.current = new Set(collectImageSrcs(editor));
     }
   }, [value, editor]);
 
@@ -226,7 +288,7 @@ export function RichTextEditor({
         className,
       )}
     >
-      {editable && editor && <Toolbar editor={editor} />}
+      {editable && editor && <Toolbar editor={editor} onImageUpload={onImageUpload ? insertUploaded : undefined} />}
       <div className="relative">
         {showPlaceholder && (
           <span className="pointer-events-none absolute left-3 top-2 text-sm text-muted/60">{placeholder}</span>
@@ -242,7 +304,7 @@ const TEXT_COLORS = ["#e5484d", "#d97706", "#2da44e", "#3b82f6", "#8b5cf6", "#11
 const HIGHLIGHTS = ["#fde68a", "#bbf7d0", "#bfdbfe", "#fbcfe8", "#e9d5ff"];
 const EMOJIS = ["😀", "😅", "🙌", "👍", "🎉", "🔥", "🚀", "✅", "❌", "⚠️", "🐛", "💡", "📝", "👀", "🙏", "💥", "⏰", "🔧", "📈", "📉", "❤️", "😢", "🤔", "🚨"];
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({ editor, onImageUpload }: { editor: Editor; onImageUpload?: (file: File) => Promise<void> }) {
   const inTable = editor.isActive("table");
   return (
     <div className="flex flex-wrap items-center gap-0.5 border-b border-border px-1.5 py-1">
@@ -298,9 +360,13 @@ function Toolbar({ editor }: { editor: Editor }) {
 
       {/* Insert */}
       <LinkButton editor={editor} />
-      <UrlButton label="Image (URL)" onSubmit={(url) => editor.chain().focus().setImage({ src: url }).run()}>
-        <ImageIcon />
-      </UrlButton>
+      {onImageUpload ? (
+        <UploadImageButton onImageUpload={onImageUpload} />
+      ) : (
+        <UrlButton label="Image (URL)" onSubmit={(url) => editor.chain().focus().setImage({ src: url }).run()}>
+          <ImageIcon />
+        </UrlButton>
+      )}
       <Btn label="Insert table" active={false} onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
         <TableIcon />
       </Btn>
@@ -370,6 +436,37 @@ function Btn({
 
 function Divider() {
   return <span className="mx-1 h-4 w-px bg-border" />;
+}
+
+/** Toolbar image button that uploads a picked file (paste/drop handled by the editor). */
+function UploadImageButton({ onImageUpload }: { onImageUpload: (file: File) => Promise<void> }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          if (f) {
+            setBusy(true);
+            try {
+              await onImageUpload(f);
+            } finally {
+              setBusy(false);
+              if (ref.current) ref.current.value = "";
+            }
+          }
+        }}
+      />
+      <Btn label="Upload image (or paste/drop)" active={false} disabled={busy} onClick={() => ref.current?.click()}>
+        <ImageIcon />
+      </Btn>
+    </>
+  );
 }
 
 /** A click-away popover anchored under its trigger. */

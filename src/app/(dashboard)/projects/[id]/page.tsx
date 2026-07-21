@@ -13,6 +13,8 @@ import { MonitorCard } from "@/components/MonitorCard";
 import { ArchivedMonitorCard } from "@/components/ArchivedMonitorCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
 import { ProjectMembersPanel } from "@/components/ProjectMembersPanel";
+import { MaintenancePanel } from "@/components/MaintenancePanel";
+import { DeployTokensPanel } from "@/components/DeployTokensPanel";
 import { ViewToggle } from "@/components/ViewToggle";
 import { MonitorsTable } from "@/components/MonitorsTable";
 import { useViewPreference } from "@/lib/useViewPreference";
@@ -100,12 +102,18 @@ export default function ProjectDetailPage() {
       />
 
       <Tabs
-        tabs={[{ key: "monitors", label: "Monitors" }, { key: "members", label: "Members" }]}
+        tabs={[{ key: "monitors", label: "Monitors" }, { key: "members", label: "Members" }, { key: "maintenance", label: "Maintenance" }]}
         active={tab}
         onChange={setTab}
       />
 
       {tab === "members" && <ProjectMembersPanel projectId={id} canManage={isProjectOwner} />}
+      {tab === "maintenance" && (
+        <div className="space-y-4">
+          <MaintenancePanel scope="project" projectId={id} mentionProjectId={id} canManage={["owner", "editor", "super"].includes(project?.myRole ?? "")} />
+          <DeployTokensPanel projectId={id} canManage={["owner", "super"].includes(project?.myRole ?? "")} />
+        </div>
+      )}
 
       {tab === "monitors" && (
       <>

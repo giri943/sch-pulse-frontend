@@ -5,6 +5,7 @@ import { useIncident } from "@/lib/hooks";
 import { useUpdateIncident } from "@/lib/mutations";
 import { useToast } from "@/components/Toast";
 import { apiFetch } from "@/lib/api-client";
+import { uploadImage } from "@/lib/uploadImage";
 import dynamic from "next/dynamic";
 import { StatusDot, Skeleton, Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -276,8 +277,9 @@ function Notes({
             setContent(html);
             setMentions(ids);
           }}
+          onImageUpload={uploadImage}
           mentionSearch={mentionSearch}
-          placeholder="Add the full context — what happened, the root cause, and how it was resolved. Type @ to mention a teammate."
+          placeholder="Add the full context — what happened, the root cause, and how it was resolved. Paste a screenshot, type @ to mention a teammate."
         />
         <div className="flex justify-end">
           <Button size="sm" onClick={save} disabled={!dirty || update.isPending}>
