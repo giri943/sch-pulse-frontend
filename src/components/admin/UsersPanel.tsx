@@ -5,10 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { useCreateUser, useUpdateUser, useDeleteUser } from "@/lib/mutations";
 import { useMe, can, PERM } from "@/lib/permissions";
+import { useAuthConfig } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { Button, Card, Field, Input, Modal, Select, StatusBadge } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { isSchbangEmail, EMAIL_DOMAIN_ERROR } from "@/lib/validation";
+import { isAllowedEmail, emailDomainError } from "@/lib/validation";
 
 interface RoleLite {
   id: string;
@@ -223,6 +224,7 @@ function TransferOwnershipModal({
 
 function NewUserModal({ open, onClose, roles }: { open: boolean; onClose: () => void; roles: RoleLite[] }) {
   const create = useCreateUser();
+  const { data: authCfg } = useAuthConfig();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [roleId, setRoleId] = useState("");
@@ -232,8 +234,8 @@ function NewUserModal({ open, onClose, roles }: { open: boolean; onClose: () => 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!isSchbangEmail(email)) {
-      setEmailError(EMAIL_DOMAIN_ERROR);
+    if (authCfg?.emailDomainEnforced && !isAllowedEmail(email, authCfg.allowedDomain)) {
+      setEmailError(emailDomainError(authCfg.allowedDomain));
       return;
     }
     setEmailError(null);

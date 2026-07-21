@@ -4,6 +4,7 @@ const STATUS_VAR: Record<string, string> = {
   degraded: "--degraded",
   down: "--down",
   paused: "--muted",
+  maintenance: "--info",
   unknown: "--muted",
 };
 

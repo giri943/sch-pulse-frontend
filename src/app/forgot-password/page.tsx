@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api-client";
 import { useAuthConfig } from "@/lib/hooks";
+import { isAllowedEmail, emailDomainError } from "@/lib/validation";
 import { Button, Field, Input } from "@/components/ui";
-import { isSchbangEmail, EMAIL_DOMAIN_ERROR } from "@/lib/validation";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -22,8 +22,9 @@ export default function ForgotPasswordPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isSchbangEmail(email)) {
-      setError(EMAIL_DOMAIN_ERROR);
+    // Enforce the org domain in prod (nice UX); dev allows any email for testing.
+    if (authCfg?.emailDomainEnforced && !isAllowedEmail(email, authCfg.allowedDomain)) {
+      setError(emailDomainError(authCfg.allowedDomain));
       return;
     }
     setError(null);

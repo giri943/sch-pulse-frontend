@@ -159,6 +159,7 @@ const STATUS_STYLES: Record<string, string> = {
   degraded: "bg-degraded/15 text-degraded",
   down: "bg-down/15 text-down",
   paused: "bg-muted/15 text-muted",
+  maintenance: "bg-info/15 text-info",
   unknown: "bg-muted/15 text-muted",
   active: "bg-up/15 text-up",
   disabled: "bg-muted/15 text-muted",
@@ -171,6 +172,7 @@ const DOT_COLOR: Record<string, string> = {
   degraded: "bg-degraded",
   down: "bg-down",
   paused: "bg-muted",
+  maintenance: "bg-info",
   unknown: "bg-muted",
   open: "bg-down",
   resolved: "bg-up",
@@ -180,6 +182,7 @@ const LABEL: Record<string, string> = {
   degraded: "Degraded",
   down: "Down",
   paused: "Paused",
+  maintenance: "Maintenance",
   unknown: "Pending",
 };
 

@@ -14,6 +14,7 @@ import { Button, Card, CardTitle, StatusDot, StatusBadge, Tabs, Skeleton, EmptyS
 import { MetricCard } from "@/components/MetricCard";
 import { MonitorFormModal } from "@/components/MonitorFormModal";
 import { IncidentDetailRow } from "@/components/IncidentDetailRow";
+import { MaintenancePanel } from "@/components/MaintenancePanel";
 import { WafNotice } from "@/components/WafNotice";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { cn } from "@/lib/cn";
@@ -109,6 +110,7 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
     { key: "incidents", label: `Incidents${summary?.totalIncidents ? ` (${summary.totalIncidents})` : ""}` },
     ...(scope === "full" ? [{ key: "checks", label: "Recent checks" }] : []),
     { key: "ssl", label: scope === "domain" ? "Domain & config" : "SSL & config" },
+    { key: "maintenance", label: "Maintenance" },
     { key: "alerts", label: "Alerts" },
   ];
 
@@ -320,6 +322,8 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
           </Card>
         </div>
       )}
+
+      {tab === "maintenance" && <MaintenancePanel scope="monitor" monitorId={id} mentionProjectId={monitor?.project?.id ?? undefined} canManage={canEditIncident} />}
 
       {tab === "alerts" && (
         <Card>

@@ -21,6 +21,8 @@ import type {
   UptimeOverview,
   EscalationPolicy,
   RcaReminderPolicy,
+  MaintenanceWindow,
+  DeployToken,
 } from "./types";
 
 /** Members of a project. */
@@ -182,10 +184,36 @@ export const useRcaReminderPolicy = () =>
     queryFn: () => apiFetch<RcaReminderPolicy>("/settings/rca-reminder"),
   });
 
+export const useMaintenancePolicy = () =>
+  useQuery({
+    queryKey: ["settings", "maintenance"],
+    queryFn: () => apiFetch<{ defaultDurationMinutes: number }>("/settings/maintenance"),
+  });
+
+/** Maintenance windows for a monitor (incl. project-wide ones) or a project. */
+export const useMaintenanceWindows = (params: { monitorId?: string; projectId?: string }) =>
+  useQuery({
+    queryKey: ["maintenance", params.monitorId ?? params.projectId ?? ""],
+    queryFn: () =>
+      apiFetch<MaintenanceWindow[]>(
+        `/maintenance?${params.monitorId ? `monitorId=${params.monitorId}` : `projectId=${params.projectId}`}`,
+      ),
+    enabled: !!(params.monitorId || params.projectId),
+    refetchInterval: 30_000,
+  });
+
+/** Per-project deploy tokens (owner only). */
+export const useDeployTokens = (projectId: string, enabled = true) =>
+  useQuery({
+    queryKey: ["deploy-tokens", projectId],
+    queryFn: () => apiFetch<DeployToken[]>(`/projects/${projectId}/deploy-tokens`),
+    enabled: enabled && !!projectId,
+  });
+
 /** Public auth config — which sign-in methods are enabled (Google-only vs break-glass password login). */
 export const useAuthConfig = () =>
   useQuery({
     queryKey: ["auth", "config"],
-    queryFn: () => apiFetch<{ passwordLoginEnabled: boolean }>("/auth/config"),
+    queryFn: () => apiFetch<{ passwordLoginEnabled: boolean; emailDomainEnforced: boolean; allowedDomain: string }>("/auth/config"),
     staleTime: 60_000,
   });
