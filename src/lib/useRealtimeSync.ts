@@ -13,6 +13,7 @@ const KEY_MAP: Record<string, string[][]> = {
   users: [["users"]],
   me: [["me"]],
   dashboard: [["dashboard"]],
+  notifications: [["notifications"]],
 };
 
 /**

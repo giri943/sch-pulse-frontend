@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Icon } from "@/components/icons";
 import { useMe } from "@/lib/permissions";
 import { useRealtimeSync } from "@/lib/useRealtimeSync";
+import { NotificationBell } from "@/components/NotificationBell";
 import { cn } from "@/lib/cn";
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -91,7 +92,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="text-sm truncate">{me?.name ?? "…"}</div>
           <div className="text-[11px] text-muted truncate">{me?.email}</div>
         </div>
-        <ThemeToggle />
       </div>
       <button onClick={logout} className="mt-2 w-full text-left px-3 py-2 text-sm text-muted hover:text-fg rounded-lg hover:bg-surface-2">
         ↪ Sign out
@@ -129,13 +129,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
+        {/* Desktop utility bar — notifications + theme, top-right */}
+        <header className="hidden lg:flex items-center justify-end gap-1 border-b border-border bg-surface/70 backdrop-blur-md px-6 h-14 sticky top-0 z-30">
+          <NotificationBell />
+          <ThemeToggle />
+        </header>
+
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center justify-between border-b border-border bg-surface px-4 h-14 sticky top-0 z-30">
           <button onClick={() => setMobileOpen(true)} className="text-muted hover:text-fg p-2 -ml-2" aria-label="Menu">
             ☰
           </button>
           <SchbangLogo fontSize={18} />
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <ThemeToggle />
+          </div>
         </header>
         <main className="flex-1 p-5 sm:p-6 lg:p-8 overflow-x-hidden">
           <div className="mx-auto w-full max-w-[1800px] 3xl:max-w-[2100px]">{children}</div>
