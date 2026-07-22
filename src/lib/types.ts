@@ -120,6 +120,16 @@ export interface RcaReminderPolicy {
   windowMinutes: number;
 }
 
+export interface AppNotification {
+  id: string;
+  type: "mention" | "project" | "incident" | "maintenance" | "expiry";
+  title: string;
+  body: string;
+  link: string | null;
+  read: boolean;
+  createdAt: string | null;
+}
+
 export interface DeployToken {
   id: string;
   name: string;

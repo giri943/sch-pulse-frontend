@@ -308,6 +308,22 @@ export function useCancelMaintenance() {
   });
 }
 
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/notifications/${id}/read`, { method: "PATCH" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch("/notifications/read-all", { method: "POST" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
+
 export function useCreateDeployToken(projectId: string) {
   const qc = useQueryClient();
   return useMutation({

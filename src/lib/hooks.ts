@@ -1,7 +1,7 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { apiFetch } from "./api-client";
+import { apiFetch, getAccessToken } from "./api-client";
 import type {
   Channel,
   DashboardStats,
@@ -23,6 +23,7 @@ import type {
   RcaReminderPolicy,
   MaintenanceWindow,
   DeployToken,
+  AppNotification,
 } from "./types";
 
 /** Members of a project. */
@@ -200,6 +201,15 @@ export const useMaintenanceWindows = (params: { monitorId?: string; projectId?: 
       ),
     enabled: !!(params.monitorId || params.projectId),
     refetchInterval: 30_000,
+  });
+
+/** Current user's in-app notifications + unread count (bell). Live via SSE; polls as fallback. */
+export const useNotifications = () =>
+  useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => apiFetch<{ items: AppNotification[]; unreadCount: number }>("/notifications?limit=20"),
+    enabled: typeof window !== "undefined" && !!getAccessToken(),
+    refetchInterval: 60_000,
   });
 
 /** Per-project deploy tokens (owner only). */
