@@ -26,6 +26,7 @@ export function ProjectsTable({
     {
       key: "name",
       header: "Project",
+      primary: true,
       sortValue: (p) => p.name.toLowerCase(),
       render: (p) => {
         const tint = projectTint(p.name, p.isSystem);

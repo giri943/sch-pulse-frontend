@@ -8,8 +8,25 @@ import { AvatarStack } from "@/components/Avatars";
 import { useMonitorAction, useDeleteMonitor } from "@/lib/mutations";
 import { useToast } from "@/components/Toast";
 import { statusColor, statusRank } from "@/lib/status";
-import { ago, expiryLabel, expiryTone } from "@/lib/monitorDisplay";
+import { ago, expiryLabel, expiryTone, isNearingExpiry } from "@/lib/monitorDisplay";
+import { cn } from "@/lib/cn";
 import type { Monitor, UserLite } from "@/lib/types";
+
+/** Warning windows (days) before each expiry kind is flagged amber/⚠️. */
+const WARN_DAYS = { ssl: 15, domain: 30, monitor: 7 } as const;
+
+/** A single typed expiry cell — muted "—" when not applicable to the monitor type or unset. */
+function ExpiryCell({ iso, applicable, warnDays }: { iso?: string | null; applicable: boolean; warnDays: number }) {
+  if (!applicable) return <span className="text-muted/50" title="Not monitored for this type">—</span>;
+  if (!iso) return <span className="text-muted" title="Awaiting first check">—</span>;
+  return (
+    <span className={cn("inline-flex items-center gap-1 whitespace-nowrap", expiryTone(iso, warnDays))}>
+      {isNearingExpiry(iso, warnDays) && <span aria-hidden>⚠️</span>}
+      {expiryLabel(iso)}
+    </span>
+  );
+}
+const sortIso = (iso?: string | null) => (iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER);
 
 /** Tagged users (populated members) on a monitor's alerts. */
 const alertMembers = (m: Monitor): UserLite[] =>
@@ -40,6 +57,7 @@ export function MonitorsTable({
     {
       key: "name",
       header: "Monitor",
+      primary: true,
       sortValue: (m) => m.name.toLowerCase(),
       render: (m) => {
         const { color, glow } = statusColor(m.status, m.enabled);
@@ -75,16 +93,28 @@ export function MonitorsTable({
       render: (m) => ((m.monitoringScope ?? "full") === "full" ? (m.uptime24h == null ? "—" : `${m.uptime24h}%`) : "—"),
     },
     {
-      key: "expiry",
-      header: "Expiry",
-      sortValue: (m) => {
-        const iso = (m.monitoringScope ?? "full") === "domain" ? m.domainExpiresAt : m.sslExpiresAt;
-        return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER;
-      },
-      render: (m) => {
-        const iso = (m.monitoringScope ?? "full") === "domain" ? m.domainExpiresAt : m.sslExpiresAt;
-        return <span className={expiryTone(iso)}>{expiryLabel(iso)}</span>;
-      },
+      key: "sslExpiry",
+      header: "🔒 SSL expiry",
+      align: "center",
+      sortValue: (m) => sortIso(m.sslExpiresAt),
+      // SSL applies to full + SSL-only monitors (not domain-only).
+      render: (m) => <ExpiryCell iso={m.sslExpiresAt} applicable={(m.monitoringScope ?? "full") !== "domain"} warnDays={WARN_DAYS.ssl} />,
+    },
+    {
+      key: "domainExpiry",
+      header: "🌐 Domain expiry",
+      align: "center",
+      sortValue: (m) => sortIso(m.domainExpiresAt),
+      // Domain applies to full + domain-only monitors (not SSL-only).
+      render: (m) => <ExpiryCell iso={m.domainExpiresAt} applicable={(m.monitoringScope ?? "full") !== "ssl"} warnDays={WARN_DAYS.domain} />,
+    },
+    {
+      key: "monitorExpiry",
+      header: "⏳ Monitor expiry",
+      align: "center",
+      sortValue: (m) => sortIso(m.expiresAt),
+      // The monitor's own scheduled expiry — applies to any type, shown only when set.
+      render: (m) => <ExpiryCell iso={m.expiresAt} applicable warnDays={WARN_DAYS.monitor} />,
     },
     {
       key: "alerts",
