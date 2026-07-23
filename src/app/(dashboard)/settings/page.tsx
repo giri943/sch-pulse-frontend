@@ -9,6 +9,7 @@ import { ChannelsPanel } from "@/components/admin/ChannelsPanel";
 import { EscalationPanel } from "@/components/admin/EscalationPanel";
 import { RcaReminderPanel } from "@/components/admin/RcaReminderPanel";
 import { MaintenanceSettingsPanel } from "@/components/admin/MaintenanceSettingsPanel";
+import { SopLibraryPanel } from "@/components/admin/SopLibraryPanel";
 
 export default function SettingsPage() {
   const { data: me } = useMe();
@@ -23,6 +24,7 @@ export default function SettingsPage() {
     ...(isSuperAdmin ? [{ key: "escalation", label: "Escalation" }] : []),
     ...(isSuperAdmin ? [{ key: "rca", label: "RCA reminders" }] : []),
     ...(isSuperAdmin ? [{ key: "maintenance", label: "Maintenance" }] : []),
+    ...(isSuperAdmin ? [{ key: "sops", label: "SOP library" }] : []),
   ];
 
   return (
@@ -36,6 +38,7 @@ export default function SettingsPage() {
       {tab === "escalation" && isSuperAdmin && <EscalationPanel />}
       {tab === "rca" && isSuperAdmin && <RcaReminderPanel />}
       {tab === "maintenance" && isSuperAdmin && <MaintenanceSettingsPanel />}
+      {tab === "sops" && isSuperAdmin && <SopLibraryPanel />}
     </div>
   );
 }

@@ -24,6 +24,9 @@ import type {
   MaintenanceWindow,
   DeployToken,
   AppNotification,
+  SopTemplate,
+  ServiceLog,
+  SopHistoryItem,
 } from "./types";
 
 /** Members of a project. */
@@ -201,6 +204,30 @@ export const useMaintenanceWindows = (params: { monitorId?: string; projectId?: 
       ),
     enabled: !!(params.monitorId || params.projectId),
     refetchInterval: 30_000,
+  });
+
+/** A project's server-maintenance plan (owner + attached SOPs). Live via SSE. */
+export const useServiceLog = (projectId: string) =>
+  useQuery({
+    queryKey: ["projects", projectId, "service-log"],
+    queryFn: () => apiFetch<ServiceLog>(`/projects/${projectId}/service-log`),
+    enabled: !!projectId,
+  });
+
+/** Completion history for a project's service log (recent first). */
+export const useServiceLogHistory = (projectId: string, enabled = true) =>
+  useQuery({
+    queryKey: ["projects", projectId, "service-log", "history"],
+    queryFn: () => apiFetch<{ items: SopHistoryItem[] }>(`/projects/${projectId}/service-log/history`),
+    enabled: enabled && !!projectId,
+  });
+
+/** Central SOP library (all active SOPs; super-admins manage, owners pick). */
+export const useSopTemplates = () =>
+  useQuery({
+    queryKey: ["sops"],
+    queryFn: () => apiFetch<SopTemplate[]>("/sops"),
+    staleTime: 30_000,
   });
 
 /** Current user's in-app notifications + unread count (bell). Live via SSE; polls as fallback. */

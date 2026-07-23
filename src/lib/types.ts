@@ -120,6 +120,60 @@ export interface RcaReminderPolicy {
   windowMinutes: number;
 }
 
+export type SopFrequency = "daily" | "weekly" | "monthly" | "quarterly";
+
+export interface SopTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  steps: string[];
+  defaultFrequency: SopFrequency;
+  archived: boolean;
+}
+
+export interface SopPeriodStatus {
+  key: string;
+  label: string;
+  done: boolean;
+  completedBy: { id: string; name: string; email: string } | null;
+  completedAt: string | null;
+  note: string;
+  proofUrl: string | null;
+}
+
+export interface ProjectSopItem {
+  id: string;
+  templateId: string | null;
+  name: string;
+  description: string;
+  category: string;
+  steps: string[];
+  frequency: SopFrequency;
+  active: boolean;
+  owner: { id: string; name: string; email: string } | null;
+  currentPeriod: SopPeriodStatus;
+}
+
+export interface SopHistoryItem {
+  id: string;
+  sopName: string;
+  frequency: SopFrequency;
+  periodKey: string;
+  periodLabel: string;
+  completedBy: { id: string; name: string; email: string } | null;
+  completedAt: string | null;
+  note: string;
+  proofUrl: string | null;
+}
+
+export interface ServiceLog {
+  enabled: boolean;
+  owner: { id: string; name: string; email: string } | null;
+  channels: string[];
+  sops: ProjectSopItem[];
+}
+
 export interface AppNotification {
   id: string;
   type: "mention" | "project" | "incident" | "maintenance" | "expiry";

@@ -308,6 +308,91 @@ export function useCancelMaintenance() {
   });
 }
 
+export interface SopBody {
+  name: string;
+  description?: string;
+  category?: string;
+  steps?: string[];
+  defaultFrequency?: "daily" | "weekly" | "monthly" | "quarterly";
+}
+
+export function useCreateSop() {
+  const invalidate = useInvalidate([["sops"]]);
+  return useMutation({
+    mutationFn: (body: SopBody) => apiFetch("/sops", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateSop() {
+  const invalidate = useInvalidate([["sops"]]);
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Partial<SopBody> }) =>
+      apiFetch(`/sops/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useArchiveSop() {
+  const invalidate = useInvalidate([["sops"]]);
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/sops/${id}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateServicePlan(projectId: string) {
+  const invalidate = useInvalidate([["projects", projectId, "service-log"]]);
+  return useMutation({
+    mutationFn: (body: { enabled?: boolean; ownerId?: string | null; channels?: string[] }) =>
+      apiFetch(`/projects/${projectId}/service-log`, { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAttachSop(projectId: string) {
+  const invalidate = useInvalidate([["projects", projectId, "service-log"]]);
+  return useMutation({
+    mutationFn: (body: { templateId: string; frequency?: string; ownerId?: string | null }) =>
+      apiFetch(`/projects/${projectId}/sops`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateProjectSop(projectId: string) {
+  const invalidate = useInvalidate([["projects", projectId, "service-log"]]);
+  return useMutation({
+    mutationFn: ({ sopId, body }: { sopId: string; body: { frequency?: string; ownerId?: string | null; active?: boolean } }) =>
+      apiFetch(`/projects/${projectId}/sops/${sopId}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDetachSop(projectId: string) {
+  const invalidate = useInvalidate([["projects", projectId, "service-log"]]);
+  return useMutation({
+    mutationFn: (sopId: string) => apiFetch(`/projects/${projectId}/sops/${sopId}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCompleteSop(projectId: string) {
+  const invalidate = useInvalidate([["projects", projectId, "service-log"]]);
+  return useMutation({
+    mutationFn: ({ sopId, body }: { sopId: string; body: { note?: string; proofKey?: string } }) =>
+      apiFetch(`/projects/${projectId}/sops/${sopId}/complete`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUncompleteSop(projectId: string) {
+  const invalidate = useInvalidate([["projects", projectId, "service-log"]]);
+  return useMutation({
+    mutationFn: (sopId: string) => apiFetch(`/projects/${projectId}/sops/${sopId}/complete`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
+}
+
 export function useMarkNotificationRead() {
   const qc = useQueryClient();
   return useMutation({
