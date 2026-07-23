@@ -25,11 +25,21 @@ export function expiryLabel(iso?: string | null): string {
   return `in ${d}d`;
 }
 
-/** Tailwind text tone class for an expiry date (red ≤0, amber ≤15, green else). */
-export function expiryTone(iso?: string | null): string {
+/**
+ * Tailwind text tone class for an expiry date: red if expired, amber if within
+ * `warnDays` (the "nearing" window — varies by kind: SSL 15, domain 30, monitor 7),
+ * green otherwise.
+ */
+export function expiryTone(iso?: string | null, warnDays = 15): string {
   const d = daysUntil(iso);
   if (d == null) return "text-muted";
   if (d < 0) return "text-down";
-  if (d <= 15) return "text-degraded";
+  if (d <= warnDays) return "text-degraded";
   return "text-up";
+}
+
+/** True when an expiry is within its warning window (or already past) — i.e. worth flagging. */
+export function isNearingExpiry(iso?: string | null, warnDays = 15): boolean {
+  const d = daysUntil(iso);
+  return d != null && d <= warnDays;
 }

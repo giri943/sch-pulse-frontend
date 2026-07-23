@@ -24,6 +24,7 @@ export function IncidentsTable({ incidents }: { incidents: IncidentRow[] }) {
     {
       key: "monitor",
       header: "Monitor",
+      primary: true,
       sortValue: (i) => (i.monitorId?.name ?? "").toLowerCase(),
       render: (i) => (
         <div className="min-w-0">
