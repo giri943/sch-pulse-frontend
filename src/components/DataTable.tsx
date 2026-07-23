@@ -12,6 +12,12 @@ export interface Column<T> {
   align?: "left" | "right" | "center";
   /** Extra classes for both header + cells (e.g. width, whitespace). */
   className?: string;
+  /**
+   * The greedy primary column (usually the name/title). It absorbs the leftover
+   * width so every other column is snug and evenly padded — keeps spacing
+   * consistent across all tables instead of drifting with content width.
+   */
+  primary?: boolean;
 }
 
 type SortState = { key: string; dir: "asc" | "desc" } | null;
@@ -63,7 +69,15 @@ export function DataTable<T>({
             {columns.map((c) => {
               const active = sort?.key === c.key;
               return (
-                <th key={c.key} className={cn("px-3 py-2.5 font-medium", alignClass[c.align ?? "left"], c.className)}>
+                <th
+                  key={c.key}
+                  className={cn(
+                    "whitespace-nowrap px-4 py-3 font-medium",
+                    c.primary ? "w-full" : "w-px",
+                    alignClass[c.align ?? "left"],
+                    c.className,
+                  )}
+                >
                   {c.sortValue ? (
                     <button
                       type="button"
@@ -94,7 +108,15 @@ export function DataTable<T>({
               )}
             >
               {columns.map((c) => (
-                <td key={c.key} className={cn("px-3 py-2.5 align-middle", alignClass[c.align ?? "left"], c.className)}>
+                <td
+                  key={c.key}
+                  className={cn(
+                    "px-4 py-3 align-middle",
+                    c.primary ? "w-full" : "w-px whitespace-nowrap",
+                    alignClass[c.align ?? "left"],
+                    c.className,
+                  )}
+                >
                   {c.render(row)}
                 </td>
               ))}
