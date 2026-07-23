@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 import { useProject } from "@/lib/hooks";
@@ -15,6 +15,7 @@ import { MonitorFormModal } from "@/components/MonitorFormModal";
 import { ProjectMembersPanel } from "@/components/ProjectMembersPanel";
 import { MaintenancePanel } from "@/components/MaintenancePanel";
 import { DeployTokensPanel } from "@/components/DeployTokensPanel";
+import { ServiceLogPanel } from "@/components/ServiceLogPanel";
 import { ViewToggle } from "@/components/ViewToggle";
 import { MonitorsTable } from "@/components/MonitorsTable";
 import { useViewPreference } from "@/lib/useViewPreference";
@@ -27,7 +28,9 @@ export default function ProjectDetailPage() {
   const { data: project } = useProject(id);
   const isProjectOwner = project?.myRole === "owner" || project?.myRole === "super";
 
-  const [tab, setTab] = useState("monitors");
+  // Honor a ?tab= deep link (e.g. from a SOP alert email/notification → service log).
+  const tabParam = useSearchParams().get("tab");
+  const [tab, setTab] = useState(tabParam ?? "monitors");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Monitor | null>(null);
   const [q, setQ] = useState("");
@@ -102,7 +105,7 @@ export default function ProjectDetailPage() {
       />
 
       <Tabs
-        tabs={[{ key: "monitors", label: "Monitors" }, { key: "members", label: "Members" }, { key: "maintenance", label: "Maintenance" }]}
+        tabs={[{ key: "monitors", label: "Monitors" }, { key: "members", label: "Members" }, { key: "maintenance", label: "Maintenance" }, { key: "servicelog", label: "Service log" }]}
         active={tab}
         onChange={setTab}
       />
@@ -113,6 +116,9 @@ export default function ProjectDetailPage() {
           <MaintenancePanel scope="project" projectId={id} mentionProjectId={id} canManage={["owner", "editor", "super"].includes(project?.myRole ?? "")} />
           <DeployTokensPanel projectId={id} canManage={["owner", "super"].includes(project?.myRole ?? "")} />
         </div>
+      )}
+      {tab === "servicelog" && (
+        <ServiceLogPanel projectId={id} canManage={["owner", "editor", "super"].includes(project?.myRole ?? "")} />
       )}
 
       {tab === "monitors" && (
