@@ -16,6 +16,7 @@ import { MonitorFormModal } from "@/components/MonitorFormModal";
 import { IncidentDetailRow } from "@/components/IncidentDetailRow";
 import { MaintenancePanel } from "@/components/MaintenancePanel";
 import { WafNotice } from "@/components/WafNotice";
+import { UptimeCalendar } from "@/components/UptimeCalendar";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 
@@ -205,6 +206,9 @@ export default function MonitorDetailPage({ params }: { params: Promise<{ id: st
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+          </Card>
+          <Card>
+            <UptimeCalendar monitorId={id} />
           </Card>
           <Card>
             <CardTitle>Availability (last 24h)</CardTitle>
