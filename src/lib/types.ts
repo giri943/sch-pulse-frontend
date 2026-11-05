@@ -26,6 +26,28 @@ export interface UptimeOverview {
   series: UptimePoint[];
 }
 
+export interface UptimeCalendarDay {
+  /** IST calendar day, "YYYY-MM-DD". */
+  date: string;
+  ups: number;
+  count: number;
+  uptime: number | null;
+  /** Incidents overlapping this day. */
+  incidents: number;
+  /** Incident downtime clipped to this day. */
+  downtimeSec: number;
+  /** Names of monitors with an incident this day. */
+  monitors: string[];
+}
+
+export interface UptimeCalendar {
+  month: string;
+  uptime: number | null;
+  incidents: number;
+  downtimeSec: number;
+  days: UptimeCalendarDay[];
+}
+
 export type MonitorStatus = "operational" | "degraded" | "down" | "paused" | "unknown";
 
 export interface StatusBoardItem {

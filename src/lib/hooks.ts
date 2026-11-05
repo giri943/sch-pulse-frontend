@@ -19,6 +19,7 @@ import type {
   SslExpiringItem,
   StatusBoardItem,
   UptimeOverview,
+  UptimeCalendar,
   EscalationPolicy,
   RcaReminderPolicy,
   MaintenanceWindow,
@@ -108,6 +109,18 @@ export const useUptimeOverview = (range: "24h" | "7d" | "30d", projectId?: strin
     queryFn: () =>
       apiFetch<UptimeOverview>(`/dashboard/uptime?range=${range}${projectId ? `&projectId=${projectId}` : ""}`),
     refetchInterval: 60_000,
+  });
+
+export const useUptimeCalendar = (month: string, scope: { projectId?: string; monitorId?: string } = {}) =>
+  useQuery({
+    queryKey: ["dashboard", "uptime-calendar", month, scope.projectId ?? "", scope.monitorId ?? ""],
+    queryFn: () => {
+      const qs = new URLSearchParams({ month });
+      if (scope.projectId) qs.set("projectId", scope.projectId);
+      if (scope.monitorId) qs.set("monitorId", scope.monitorId);
+      return apiFetch<UptimeCalendar>(`/dashboard/uptime/calendar?${qs}`);
+    },
+    refetchInterval: 5 * 60_000,
   });
 
 export const useStatusBoard = () =>

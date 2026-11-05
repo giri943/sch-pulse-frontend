@@ -16,6 +16,7 @@ import { ProjectMembersPanel } from "@/components/ProjectMembersPanel";
 import { MaintenancePanel } from "@/components/MaintenancePanel";
 import { DeployTokensPanel } from "@/components/DeployTokensPanel";
 import { ServiceLogPanel } from "@/components/ServiceLogPanel";
+import { UptimeCalendar } from "@/components/UptimeCalendar";
 import { ViewToggle } from "@/components/ViewToggle";
 import { MonitorsTable } from "@/components/MonitorsTable";
 import { useViewPreference } from "@/lib/useViewPreference";
@@ -105,11 +106,16 @@ export default function ProjectDetailPage() {
       />
 
       <Tabs
-        tabs={[{ key: "monitors", label: "Monitors" }, { key: "members", label: "Members" }, { key: "maintenance", label: "Maintenance" }, { key: "servicelog", label: "Service log" }]}
+        tabs={[{ key: "monitors", label: "Monitors" }, { key: "uptime", label: "Uptime" }, { key: "members", label: "Members" }, { key: "maintenance", label: "Maintenance" }, { key: "servicelog", label: "Service log" }]}
         active={tab}
         onChange={setTab}
       />
 
+      {tab === "uptime" && (
+        <Card>
+          <UptimeCalendar projectId={id} />
+        </Card>
+      )}
       {tab === "members" && <ProjectMembersPanel projectId={id} canManage={isProjectOwner} />}
       {tab === "maintenance" && (
         <div className="space-y-4">
